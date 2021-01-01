@@ -1,0 +1,28 @@
+{
+  "single": [
+    {
+      "name": "master",
+      "config": "master.json"
+    },
+    {
+      "name": "actions",
+      "config": "actions.json"
+    },
+    {
+      "name": "images/ingame/ui",
+      "config": "ui.json"
+    }
+  ],
+  "multi": [
+    {
+      "regExp": "images/icon/",
+      "config": "icons.json",
+      "skipExists": true
+    },
+    {
+      "regExp": "images/outgame/unitdetail/(amulet|chara|dragon)",
+      "config": "unitdetail.json",
+      "skipExists": true
+    }
+  ]
+}

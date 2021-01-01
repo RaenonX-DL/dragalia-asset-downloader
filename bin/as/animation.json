@@ -1,0 +1,8 @@
+{
+  "Exports": [
+    {
+      "Types": ["AnimationClip"],
+      "Containers": ["/resources/characters/motion"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "Exports": [
+        {
+            "Types": ["GameObject"],
+            "Containers": ["/resources/actions/"]
+        },
+        {
+            "Types": ["MonoBehaviour"],
+            "Containers": ["/resources/actions/actionpartslist.asset"]
+        }
+    ]
+}
