@@ -43,13 +43,16 @@ class Manifest {
     );
   }
 
-  Stream<File> pullAssets(RegExp expr) async* {
+  Future<List<File>> pullAssets(RegExp expr) async {
+    var futures = <Future<File>>[];
     var matches = _namedAssetBundles.entries.where((e) => expr.hasMatch(e.key));
     for (var asset in matches) {
-      yield await cdn.pullAsset(
+      futures.add(cdn.pullAsset(
         asset.value.hash,
         checkSize: asset.value.size,
-      );
+      ));
     }
+
+    return Future.wait(futures);
   }
 }
