@@ -7,8 +7,9 @@ Future compose_all_alpha() async {
   var srcDir = Directory(exportOutputDir);
   if (!await srcDir.exists()) return;
 
-  var files = await srcDir.list(recursive: true).toList();
-  files = files.where((f) {
+  var files = await srcDir.list(recursive: true).toSet();
+
+  await Future.wait(files.where((f) {
     if (f is File) {
       var ext = path.extension(f.path);
       if (ext.toLowerCase() != '.png') return false;
@@ -17,11 +18,7 @@ Future compose_all_alpha() async {
       return true;
     }
     return false;
-  }).toList();
-
-  for (var i = 0; i < files.length; ++i) {
-    await compose_rgb_alpha(files[i]);
-  }
+  }).map((file) => compose_rgb_alpha(file)));
 }
 
 Future compose_rgb_alpha(File file) async {
@@ -33,7 +30,8 @@ Future compose_rgb_alpha(File file) async {
       var alphaFile = File(path.join(dir, '${name}_alphaA8.png'));
       if (await alphaFile.exists()) {
         if (await isFileModified(file)) {
-          print('[imgproc] compose alpha:' + file.path);
+          var currentDateTime = DateTime.now().toIso8601String();
+          print('$currentDateTime: [imgproc] compose alpha:' + file.path);
           var rgb = img.decodePng(await file.readAsBytes());
           var a = img.decodePng(await alphaFile.readAsBytes());
           if (a.length != rgb.length) {

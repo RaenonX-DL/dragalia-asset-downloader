@@ -2,6 +2,7 @@
 bin/cdn
 bin/media
 bin/temp
+bin/incr
 
 # Sandbox files
 bin/config-temp.json

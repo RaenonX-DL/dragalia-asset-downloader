@@ -5,6 +5,7 @@ class ManifestAssetBundle {
   String name;
   String hash;
   int size;
+
   ManifestAssetBundle(this.name, this.hash, this.size);
 }
 
@@ -44,15 +45,11 @@ class Manifest {
   }
 
   Future<List<File>> pullAssets(RegExp expr) async {
-    var futures = <Future<File>>[];
-    var matches = _namedAssetBundles.entries.where((e) => expr.hasMatch(e.key));
-    for (var asset in matches) {
-      futures.add(cdn.pullAsset(
-        asset.value.hash,
-        checkSize: asset.value.size,
-      ));
-    }
-
-    return Future.wait(futures);
+    return Future.wait(_namedAssetBundles.entries
+        .where((e) => expr.hasMatch(e.key))
+        .map((asset) => cdn.pullAsset(
+              asset.value.hash,
+              checkSize: asset.value.size,
+            )));
   }
 }
