@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'dlcdn.dart' as cdn;
 
 class ManifestAssetBundle {
@@ -44,12 +45,24 @@ class Manifest {
     );
   }
 
-  Future<List<File>> pullAssets(RegExp expr) async {
-    return Future.wait(_namedAssetBundles.entries
+  Iterable<Future<List<File>>> pullAssets(RegExp expr) {
+    var assets = _namedAssetBundles.entries
         .where((e) => expr.hasMatch(e.key))
-        .map((asset) => cdn.pullAsset(
-              asset.value.hash,
-              checkSize: asset.value.size,
-            )));
+        .map((e) => e.value)
+        .toList();
+
+    var assetChunkSize = 50;
+    var assetChunks = <List<ManifestAssetBundle>>[];
+
+    for (var start = 0; start < assets.length; start += assetChunkSize) {
+      assetChunks.add(
+          assets.sublist(start, min(start + assetChunkSize, assets.length)));
+    }
+
+    return assetChunks.map((assetChunk) =>
+        Future.wait(assetChunk.map((asset) =>
+            cdn.pullAsset(asset.hash, checkSize: asset.size)
+        ))
+    );
   }
 }

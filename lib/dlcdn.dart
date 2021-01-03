@@ -46,8 +46,13 @@ Future<File> pullAsset(String hash, {int checkSize}) async {
     return saveToFile;
   }
 
-  var bytes = await http.readBytes(_assetUrl(hash));
-  var currentDateTime = DateTime.now().toIso8601String();
-  print('$currentDateTime: [cdn] pulled $hash ...');
+  var bytes;
+  try {
+    bytes = await http.readBytes(_assetUrl(hash));
+  } on SocketException {
+    return pullAsset(hash, checkSize: checkSize);
+  }
+
+  print('${DateTime.now().toIso8601String()}: [cdn] pulled $hash ...');
   return await File(path.join(saveToDir.path, hash)).writeAsBytes(bytes);
 }

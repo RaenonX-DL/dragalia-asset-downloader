@@ -9,7 +9,7 @@ Future compose_all_alpha() async {
 
   var files = await srcDir.list(recursive: true).toSet();
 
-  await Future.wait(files.where((f) {
+  var filesToProcess = files.where((f) {
     if (f is File) {
       var ext = path.extension(f.path);
       if (ext.toLowerCase() != '.png') return false;
@@ -18,7 +18,25 @@ Future compose_all_alpha() async {
       return true;
     }
     return false;
-  }).map((file) => compose_rgb_alpha(file)));
+  }).toList();
+
+  var fileChunkCount = 50;
+  var fileChunks = List.generate(fileChunkCount, (_) => []);
+
+  for (var i = 0; i < filesToProcess.length; i += 1) {
+    fileChunks[i % fileChunkCount].add(filesToProcess[i]);
+  }
+
+  print('::group::Compose image alpha channel');
+  var dumpStartTime = DateTime.now();
+
+  await Future.wait(fileChunks.map((fileChunk) async => {
+    for (var file in fileChunk) {await compose_rgb_alpha(file)}
+  }));
+
+  var duration = DateTime.now().difference(dumpStartTime).abs();
+  print('Image composing completed in ${duration}');
+  print('::endgroup::');
 }
 
 Future compose_rgb_alpha(File file) async {
@@ -31,7 +49,7 @@ Future compose_rgb_alpha(File file) async {
       if (await alphaFile.exists()) {
         if (await isFileModified(file)) {
           var currentDateTime = DateTime.now().toIso8601String();
-          print('$currentDateTime: [imgproc] compose alpha:' + file.path);
+          print('$currentDateTime: [imgproc] compose alpha: ' + file.path);
           var rgb = img.decodePng(await file.readAsBytes());
           var a = img.decodePng(await alphaFile.readAsBytes());
           if (a.length != rgb.length) {

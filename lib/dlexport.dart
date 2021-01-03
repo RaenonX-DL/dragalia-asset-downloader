@@ -88,12 +88,21 @@ Future exportAssetsWithManifest(String locale) async {
       // ::group:: for GH Actions log grouping
       print('::group::Export $assetRegExp (multi)');
 
-      var multiAsset = await manifest.pullAssets(RegExp(assetRegExp));
+      var assets = <File>[];
+
+      for (var pullAction in manifest.pullAssets(RegExp(assetRegExp))) {
+        assets.addAll(await pullAction);
+      }
+
+      print('Assets pulled.');
+
       await exportAssets(
-        await createAssetsFile(multiAsset),
+        await createAssetsFile(assets),
         path.join(current.assetStudioSettingPath, assetConfig),
         skipExists: skipExists,
       );
+
+      print('Assets exported.');
 
       print('::endgroup::');
     }
