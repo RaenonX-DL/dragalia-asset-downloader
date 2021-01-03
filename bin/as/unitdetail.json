@@ -2,7 +2,8 @@
     "Exports": [
         {
             "Types": ["Texture2D"],
-            "Containers": ["/resources/images/outgame/unitdetail"]
+            "Containers": ["/resources/images/outgame/unitdetail"],
+			"ExportType": "Convert"
         }
     ]
 }

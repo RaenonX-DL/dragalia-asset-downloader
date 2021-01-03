@@ -2,7 +2,8 @@
     "Exports": [
         {
             "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/master/"]
+            "Containers": ["/resources/master/"],
+			"ExportType": "Convert"
         }
     ]
 }

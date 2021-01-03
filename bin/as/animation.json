@@ -2,7 +2,8 @@
   "Exports": [
     {
       "Types": ["AnimationClip"],
-      "Containers": ["/resources/characters/motion"]
+      "Containers": ["/resources/characters/motion"],
+	  "ExportType": "Convert"
     }
   ]
 }

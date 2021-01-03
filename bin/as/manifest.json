@@ -2,7 +2,8 @@
     "Exports": [
         {
             "Types": ["MonoBehaviour"],
-            "Containers": ["manifest.asset"]
+            "Containers": ["manifest.asset"],
+			"ExportType": "Convert"
         }
     ]
 }

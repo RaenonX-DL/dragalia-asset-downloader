@@ -2,7 +2,8 @@
     "Exports": [
         {
             "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/master/textlabel.asset"]
+            "Containers": ["/resources/master/textlabel.asset"],
+			"ExportType": "Convert"
         }
     ]
 }

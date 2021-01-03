@@ -2,11 +2,13 @@
     "Exports": [
         {
             "Types": ["GameObject"],
-            "Containers": ["/resources/actions/"]
+            "Containers": ["/resources/actions/"],
+			"ExportType": "Convert"
         },
         {
             "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/actions/actionpartslist.asset"]
+            "Containers": ["/resources/actions/actionpartslist.asset"],
+			"ExportType": "Convert"
         }
     ]
 }
