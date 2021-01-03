@@ -17,5 +17,6 @@ build/
 # Directory created by dartdoc
 doc/api/
 
-# Wakatime
+# Project files
+.idea/
 .wakatime-project
