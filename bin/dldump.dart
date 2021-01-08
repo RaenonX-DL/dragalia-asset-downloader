@@ -37,6 +37,6 @@ void main(List<String> arguments) async {
   await imgproc.compose_all_alpha();
 
   var dumpDuration = DateTime.now().difference(dumpStartTime).abs();
-  var currentDateTime = DateTime.now().toIso8601String();
-  print('$currentDateTime: dump succeed in ${dumpDuration.toHmsString()}');
+  print('${DateTime.now().toIso8601String()}: '
+      'dump succeed in ${dumpDuration.toHmsString()}');
 }

@@ -49,7 +49,7 @@ Future compose_rgb_alpha(File file) async {
       if (await alphaFile.exists()) {
         if (await isFileModified(file)) {
           var currentDateTime = DateTime.now().toIso8601String();
-          print('$currentDateTime: [imgproc] compose alpha: ' + file.path);
+          print('${currentDateTime}: [imgproc] compose alpha: ' + file.path);
           var rgb = img.decodePng(await file.readAsBytes());
           var a = img.decodePng(await alphaFile.readAsBytes());
           if (a.length != rgb.length) {

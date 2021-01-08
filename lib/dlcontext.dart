@@ -26,39 +26,8 @@ const manifestLocaleFiles = {
   'tw': 'assetbundle.zh_tw.manifest',
 };
 
-class Context {
-  final decryptBin;
-  final assetStudioBin;
-  final String assetStudioSettingPath;
-
-  Context._(this.decryptBin, this.assetStudioBin, this.assetStudioSettingPath);
-
-  factory Context._create() {
-    String decryptBin;
-    String assetStudioBin;
-    String assetStudioSettingPath;
-
-    if (kReleaseMode) {
-      var binPath = path.dirname(io.Platform.resolvedExecutable);
-      assetStudioSettingPath = path.normalize(path.join(binPath, '..', 'as'));
-      decryptBin = path.join(binPath, 'Decrypt.dll');
-      assetStudioBin = path.join(binPath, 'AssetStudio', 'AssetStudioCLI.exe');
-    } else {
-      assetStudioSettingPath = 'as';
-      decryptBin = path.join('Decrypt.dll');
-      assetStudioBin = path.join('AssetStudio', 'AssetStudioCLI.exe');
-    }
-
-    return Context._(decryptBin, assetStudioBin, assetStudioSettingPath);
-  }
-}
-
-Context _current;
-
-Context get current {
-  _current ??= Context._create();
-  return _current;
-}
+var contextRoot =
+    kReleaseMode ? path.dirname(io.Platform.resolvedExecutable) : '.';
 
 String getArgumentsOptionValue(List<String> arguments, String flag) {
   var i = arguments.indexOf(flag);
@@ -82,19 +51,15 @@ Future initWithArguments(List<String> arguments) async {
 
   var exportPath = getArgumentsOptionValue(arguments, '--export-path');
   if (exportPath != null) {
-    exportPath = path.normalize(exportPath);
-    if (!await io.Directory(exportPath).exists()) {
-      await Directory(exportPath).create(recursive: true);
-    }
+    var exportDir = Directory(path.normalize(exportPath));
+    await exportDir.create(recursive: true);
     exportOutputDir = exportPath;
   }
 
   var cdnPath = getArgumentsOptionValue(arguments, '--cdn-path');
   if (cdnPath != null) {
-    cdnPath = path.normalize(cdnPath);
-    if (!await io.Directory(cdnPath).exists()) {
-      await Directory(cdnPath).create(recursive: true);
-    }
+    var cdnDir = Directory(path.normalize(cdnPath));
+    await cdnDir.create(recursive: true);
     cdnOutputPath = cdnPath;
   }
 

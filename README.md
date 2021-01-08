@@ -1,6 +1,6 @@
 # dragalia-data-downloader
 
-Dart CLI tool for downloading and pre-process Dragalia Lost game assets.
+Dart CLI tool for downloading and pre-processing Dragalia Lost game assets.
 
 ### Prerequisites
 

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:dl_datamine/dlmanifest.dart';
 import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'dlcontext.dart';
@@ -33,26 +34,30 @@ String manifestPath([String locale]) {
   return path.join(_manifestPath, manifestLocaleFiles[locale]);
 }
 
-Future<File> pullAsset(String hash, {int checkSize}) async {
-  var saveToDir = Directory(path.join(_assetsPath, hash.substring(0, 2)));
-  await saveToDir.create(recursive: true);
-  var saveToFile = File(path.join(saveToDir.path, hash));
+Future<ManifestAssetBundle> pullAsset(ManifestAssetBundle asset, {bool useName = false}) async {
+  if (useName) {
+    asset.file =
+        File(path.joinAll([_assetsPath, '.named', ...asset.name.split('/')]));
+  } else {
+    asset.file =
+        File(path.join(_assetsPath, asset.hash.substring(0, 2), asset.hash));
+  }
+  await asset.file.parent.create(recursive: true);
 
   checkExists:
-  if (await saveToFile.exists()) {
-    if (checkSize != null) {
-      if (checkSize != await saveToFile.length()) break checkExists;
-    }
-    return saveToFile;
+  if (await asset.file.exists()) {
+    if (asset.size != await asset.file.length()) break checkExists;
+    return asset;
   }
 
   var bytes;
   try {
-    bytes = await http.readBytes(_assetUrl(hash));
+    bytes = await http.readBytes(_assetUrl(asset.hash));
   } on SocketException {
-    return pullAsset(hash, checkSize: checkSize);
+    return pullAsset(asset, useName: useName);
   }
 
-  print('${DateTime.now().toIso8601String()}: [cdn] pulled $hash ...');
-  return await File(path.join(saveToDir.path, hash)).writeAsBytes(bytes);
+  print('${DateTime.now().toIso8601String()}: [cdn] pulled ${asset.hash} ...');
+  await asset.file.writeAsBytes(bytes);
+  return asset;
 }

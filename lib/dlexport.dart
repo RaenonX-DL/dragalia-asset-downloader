@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:dl_datamine/config.dart';
 import 'package:dl_datamine/dlcdn.dart' as cdn;
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
@@ -7,8 +8,14 @@ import 'package:uuid/uuid.dart';
 import 'dlmanifest.dart';
 import 'dlcontext.dart';
 
+extension Extension on String {
+  bool isNullOrEmpty() => this == null || isEmpty;
+}
+
 Future exportAllAssets() async {
   var tempDir = await Directory(tempOutputPath).create(recursive: true);
+
+  var config = await ExportConfig.create(contextRoot, configPath);
 
   for (var loc in manifestLocaleFiles.keys) {
     var encrypted = cdn.manifestPath(loc);
@@ -17,7 +24,7 @@ Future exportAllAssets() async {
     var proc = await Process.start(
       dotnetBin,
       [
-        current.decryptBin,
+        config.decryptDLLPath,
         encrypted,
         decrypted,
         manifestKey,
@@ -34,18 +41,19 @@ Future exportAllAssets() async {
       throw Exception('error: failed to decrypt $encrypted ($exitCode)');
     }
     await exportAssets(
+      config,
       decrypted,
-      path.join(current.assetStudioSettingPath, 'manifest.json'),
+      path.join(config.assetStudioConfigDir, 'manifest.json'),
       suffix: loc == manifestMasterLocale ? null : '@$loc',
     );
 
-    await exportAssetsWithManifest(loc);
+    await exportAssetsWithManifest(config, loc);
   }
 
   await tempDir.delete(recursive: true);
 }
 
-Future exportAssetsWithManifest(String locale) async {
+Future exportAssetsWithManifest(ExportConfig config, String locale) async {
   var isMaster = locale == manifestMasterLocale;
   var manifestFile = File(
     path.join(
@@ -57,69 +65,123 @@ Future exportAssetsWithManifest(String locale) async {
   var json = jsonDecode(await manifestFile.readAsString());
   var manifest = Manifest.fromJson(json);
 
-  var configJson = jsonDecode(
-      await File(configPath).readAsString()
-  );
-
+  // Export assets
   if (isMaster) {
-    // Get single asset parsing config
-    for (var entry in configJson['single']) {
-      var assetName = entry['name'];
-      var assetConfig = entry['config'];
-
-      // ::group:: for GH Actions log grouping
-      print('::group::Export $assetName (single)');
-
-      var singleAsset = await manifest.pullAsset(assetName);
-      await exportAssets(
-        singleAsset.path,
-        path.join(current.assetStudioSettingPath, assetConfig),
-      );
-
-      print('::endgroup::');
+    for (var entry in config.single) {
+      await exportSingleAsset(config, entry, manifest);
     }
 
-    // Get multi asset parsing config
-    for (var entry in configJson['multi']) {
-      var assetRegExp = entry['regExp'];
-      var assetConfig = entry['config'];
-      var skipExists = entry['skipExists'];
-
-      // ::group:: for GH Actions log grouping
-      print('::group::Export $assetRegExp (multi)');
-
-      var assets = <File>[];
-
-      for (var pullAction in manifest.pullAssets(RegExp(assetRegExp))) {
-        assets.addAll(await pullAction);
-      }
-
-      print('Assets pulled.');
-
-      await exportAssets(
-        await createAssetsFile(assets),
-        path.join(current.assetStudioSettingPath, assetConfig),
-        skipExists: skipExists,
-      );
-
-      print('Assets exported.');
-
-      print('::endgroup::');
+    for (var entry in config.multi) {
+      await exportMultiAsset(config, entry, manifest);
     }
   } else {
-    var masterFile = await manifest.pullAsset('master');
-
-    // ::group:: for GH Actions log grouping
-    print('::group::Export master');
-
-    await exportAssets(
-      masterFile.path,
-      path.join(current.assetStudioSettingPath, 'localized.json'),
-      suffix: '@$locale',
-    );
-
-    print('::endgroup::');
+    await exportMasterAsset(config, locale, manifest);
   }
+
+  await exportAudioAsset(config, manifest);
+}
+
+Future exportMasterAsset(
+    ExportConfig config, String locale, Manifest manifest) async {
+  var masterFile = await manifest.pullUnityAsset('master');
+
+  // ::group:: for GH Actions log grouping
+  print('::group::Export master');
+
+  await exportAssets(
+    config,
+    masterFile.file.path,
+    path.join(config.assetStudioConfigDir, 'localized.json'),
+    suffix: '@$locale',
+  );
+
+  print('::endgroup::');
+}
+
+Future exportSingleAsset(
+    ExportConfig config, SingleConfig configEntry, Manifest manifest) async {
+  var assetName = configEntry.name;
+  var assetConfig = configEntry.config;
+
+  print('::group::Export $assetName (single)');
+
+  var singleAsset = await manifest.pullUnityAsset(assetName);
+
+  print('Assets pulled.');
+
+  await exportAssets(
+    config,
+    singleAsset.file.path,
+    path.join(config.assetStudioConfigDir, assetConfig),
+  );
+
+  print('Assets exported.');
+
+  print('::endgroup::');
+}
+
+Future exportMultiAsset(
+    ExportConfig config, MultiConfig configEntry, Manifest manifest) async {
+  var assetRegExp = configEntry.regExp;
+  var assetConfig = configEntry.config;
+  var skipExists = configEntry.skipExists;
+
+  print('::group::Export $assetRegExp (multi)');
+
+  var assets = <ManifestAssetBundle>[];
+
+  for (var pullAction in manifest.pullUnityAssets(assetRegExp)) {
+    assets.addAll(await pullAction);
+  }
+
+  print('Assets pulled.');
+
+  await exportAssets(
+    config,
+    await createAssetsFile(assets.map((e) => e.file)),
+    path.join(config.assetStudioConfigDir, assetConfig),
+    skipExists: skipExists,
+  );
+
+  print('Assets exported.');
+
+  print('::endgroup::');
+}
+
+Future exportAudioAsset(ExportConfig config, Manifest manifest) async {
+  print('::group::Export audio');
+
+  var audioAssets = <ManifestAssetBundle>[];
+
+  for (var pullAction
+      in manifest.pullRawAssets(config.pathConfig.audio.regExp)) {
+    audioAssets.addAll((await pullAction)
+        .where((asset) => path.extension(asset.file.path) == '.awb')
+        .where((asset) => !config.pathConfig.audio.isIndexHashMatch(asset)));
+  }
+
+  print('Assets pulled.');
+
+  if (audioAssets.isEmpty) {
+    print('${DateTime.now().toIso8601String()}: No new audio assets detected.');
+  }
+
+  for (var idx = 0; idx < audioAssets.length; idx += 1) {
+    var audioAsset = audioAssets[idx];
+
+    config.pathConfig.audio.updateIndex(audioAsset);
+
+    print('${DateTime.now().toIso8601String()}: '
+        'Exporting Audio (${idx + 1} / ${audioAssets.length}) '
+        '${audioAsset.file.path}');
+    await exportAudio(config, audioAsset);
+  }
+
+  await config.pathConfig.audio.updateIndexFile();
+
+  print('Assets exported.');
+
+  print('::endgroup::');
 }
 
 Future<String> createAssetsFile(List<File> assetFiles) async {
@@ -133,6 +195,7 @@ Future<String> createAssetsFile(List<File> assetFiles) async {
 }
 
 Future exportAssets(
+  ExportConfig config,
   String bundlePath,
   String settingPath, {
   String suffix,
@@ -152,7 +215,7 @@ Future exportAssets(
     arguments.add('--skip-exists');
   }
   var proc = await Process.start(
-    current.assetStudioBin,
+    config.assetStudioCLIPath,
     arguments,
     runInShell: true,
   );
@@ -161,6 +224,94 @@ Future exportAssets(
   await stderr.addStream(proc.stderr);
 
   if (await proc.exitCode != 0) {
-    throw Exception('error: export assets on failure. ($bundlePath)');
+    throw Exception('error: failed to export assets. ($bundlePath)');
   }
+}
+
+Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle awbAsset,
+    int subsongIndex, bool streamHasName) async {
+  var awbFilePath = awbAsset.file.path;
+
+  if (!await File(awbFilePath).exists()) {
+    throw Exception('error: awb audio file not exists. ($awbFilePath)');
+  }
+
+  var assetDir = awbAsset.name.split('/');
+  var exportDir = Directory(path.joinAll([
+    exportOutputDir,
+    config.pathConfig.audio.exportDir,
+    ...assetDir.sublist(0, assetDir.length - 1),
+    path.basenameWithoutExtension(awbAsset.name)
+  ]));
+  await exportDir.create(recursive: true);
+
+  var exportPath =
+      path.join(exportDir.path, streamHasName ? '?n.wav' : '?03s.wav');
+
+  if (await File(exportPath).exists()) {
+    return;
+  }
+
+  var arguments = [
+    '-s',
+    subsongIndex.toString(),
+    '-i',
+    '-o',
+    exportPath,
+    awbFilePath,
+  ];
+  var proc = await Process.run(
+    config.vgmStreamPath,
+    arguments,
+    runInShell: true,
+  );
+
+  if (!(proc.stderr as String).isNullOrEmpty()) {
+    stderr.write(proc.stderr);
+  }
+
+  if (await proc.exitCode != 0) {
+    throw Exception('error: failed to export the audio subsong.'
+        ' (#$subsongIndex of $awbFilePath to $exportPath)');
+  }
+}
+
+Future exportAudio(ExportConfig config, ManifestAssetBundle awbAsset) async {
+  var awbFile = awbAsset.file;
+
+  if (!await awbFile.exists()) {
+    throw Exception('error: awb audio file not exists. (${awbFile.path})');
+  }
+
+  // Get metadata
+  var arguments = [
+    '-I',
+    '-m',
+    awbFile.path,
+  ];
+  var proc = await Process.run(
+    config.vgmStreamPath,
+    arguments,
+    runInShell: true,
+  );
+
+  var infoJson = jsonDecode(proc.stdout);
+  if (!(proc.stderr as String).isNullOrEmpty()) {
+    stderr.write(proc.stderr);
+  }
+
+  if (await proc.exitCode != 0) {
+    throw Exception(
+        'error: failed to get the audio metadata. (${awbFile.path})');
+  }
+
+  // Export streams
+  var streamCount = infoJson['streamInfo']['total'];
+  var streamHasName = infoJson['streamInfo']['name'] != null;
+
+  var tasks = Iterable<int>.generate(streamCount, (i) => (i + 1)).map(
+      (subsongIndex) async =>
+          {exportAudioSubsong(config, awbAsset, subsongIndex, streamHasName)});
+
+  await Future.wait(tasks);
 }

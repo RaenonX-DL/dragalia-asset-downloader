@@ -1,4 +1,22 @@
 {
+  "paths": {
+	"decrypter": {
+      "dir": "Decrypter",
+      "dll": "Decrypt.dll"
+    },
+    "assetStudio": {
+      "configDir": "as",
+      "cliDir": "AssetStudio",
+      "cliExe": "AssetStudioCLI.exe"
+    },
+    "audio": {
+      "regExp": ".*(acb|awb)",
+      "exportDir": "audio",
+      "indexPath": "audio.json",
+      "vgmStreamDir": "vgmstream",
+      "vgmStreamExe": "vgmstream.exe"
+    }
+  },
   "single": [
     {
       "name": "master",
@@ -9,7 +27,7 @@
       "config": "actions.json"
     },
     {
-      "name": "images/ingame/ui",
+      "name": "imags/ingame/ui",
       "config": "ui.json"
     }
   ],
