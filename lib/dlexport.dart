@@ -13,9 +13,9 @@ extension Extension on String {
 }
 
 Future exportAllAssets() async {
-  var tempDir = await Directory(tempOutputPath).create(recursive: true);
-
   var config = await ExportConfig.create(contextRoot, configPath);
+  var tempDir =
+      await Directory(config.pathConfig.tempDir).create(recursive: true);
 
   for (var loc in manifestLocaleFiles.keys) {
     var encrypted = cdn.manifestPath(loc);
@@ -138,7 +138,7 @@ Future exportMultiAsset(
 
   await exportAssets(
     config,
-    await createAssetsFile(assets.map((e) => e.file)),
+    await createAssetsFile(config, assets.map((e) => e.file)),
     path.join(config.assetStudioConfigDir, assetConfig),
     skipExists: skipExists,
   );
@@ -184,8 +184,9 @@ Future exportAudioAsset(ExportConfig config, Manifest manifest) async {
   print('::endgroup::');
 }
 
-Future<String> createAssetsFile(List<File> assetFiles) async {
-  var file = File(path.join(tempOutputPath, Uuid().v1() + '.files'));
+Future<String> createAssetsFile(
+    ExportConfig config, List<File> assetFiles) async {
+  var file = File(path.join(config.pathConfig.tempDir, Uuid().v1() + '.files'));
   var writer = file.openWrite();
   for (var assetFile in assetFiles) {
     writer.writeln(assetFile.path);

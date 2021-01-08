@@ -15,7 +15,6 @@ var configPath = 'config.json';
 var manifestIV = '';
 var manifestKey = '';
 var incrementalOutputPath = 'incr';
-var tempOutputPath = 'temp';
 var versionCode = 'ziG2a3wZmqghCYnc';
 
 const manifestMasterLocale = 'jp';

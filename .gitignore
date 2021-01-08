@@ -3,6 +3,7 @@ bin/cdn
 bin/media
 bin/temp
 bin/incr
+bin/.exclude
 
 # Sandbox files
 bin/config-temp.json

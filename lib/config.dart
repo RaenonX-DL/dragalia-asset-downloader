@@ -54,10 +54,10 @@ class AudioConfig {
 
     return AudioConfig._(
         RegExp(configBody['regExp']),
-        configBody['exportDir'],
+        path.joinAll(configBody['exportDir'].split('/')),
         indexFile,
         jsonDecode(await indexFile.readAsString()),
-        configBody['vgmStreamDir'],
+        path.joinAll(configBody['vgmStreamDir'].split('/')),
         configBody['vgmStreamExe']);
   }
 
@@ -81,7 +81,8 @@ class DecrypterConfig {
   DecrypterConfig._(this.dir, this.dll);
 
   factory DecrypterConfig.parse(Map<String, dynamic> configBody) {
-    return DecrypterConfig._(configBody['dir'], configBody['dll']);
+    return DecrypterConfig._(
+        path.joinAll(configBody['dir'].split('/')), configBody['dll']);
   }
 }
 
@@ -93,8 +94,8 @@ class AssetStudioConfig {
   AssetStudioConfig._(this.configDir, this.cliDir, this.cliExe);
 
   factory AssetStudioConfig.parse(Map<String, dynamic> configBody) {
-    return AssetStudioConfig._(
-        configBody['configDir'], configBody['cliDir'], configBody['cliExe']);
+    return AssetStudioConfig._(path.joinAll(configBody['configDir'].split('/')),
+        path.joinAll(configBody['cliDir'].split('/')), configBody['cliExe']);
   }
 }
 
@@ -102,14 +103,16 @@ class PathConfig {
   final DecrypterConfig decrypter;
   final AssetStudioConfig assetStudio;
   final AudioConfig audio;
+  final String tempDir;
 
-  PathConfig._(this.decrypter, this.assetStudio, this.audio);
+  PathConfig._(this.decrypter, this.assetStudio, this.audio, this.tempDir);
 
   static Future<PathConfig> parse(Map<String, dynamic> configBody) async {
     return PathConfig._(
         DecrypterConfig.parse(configBody['decrypter']),
         AssetStudioConfig.parse(configBody['assetStudio']),
-        await AudioConfig.parse(configBody['audio']));
+        await AudioConfig.parse(configBody['audio']),
+        configBody['tempDir']);
   }
 }
 

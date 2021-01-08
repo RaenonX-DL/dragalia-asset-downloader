@@ -1,21 +1,22 @@
 {
   "paths": {
 	"decrypter": {
-      "dir": "Decrypter",
+      "dir": "lib/Decrypter",
       "dll": "Decrypt.dll"
     },
     "assetStudio": {
       "configDir": "as",
-      "cliDir": "AssetStudio",
+      "cliDir": "lib/AssetStudio",
       "cliExe": "AssetStudioCLI.exe"
     },
     "audio": {
       "regExp": ".*(acb|awb)",
       "exportDir": "audio",
       "indexPath": "audio.json",
-      "vgmStreamDir": "vgmstream",
+      "vgmStreamDir": "lib/vgmstream",
       "vgmStreamExe": "vgmstream.exe"
-    }
+    },
+    "tempDir": ".exclude/temp"
   },
   "single": [
     {
