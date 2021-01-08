@@ -1,7 +1,10 @@
 import 'dart:io';
+
+import 'package:dl_datamine/config.dart';
 import 'package:dl_datamine/dlmanifest.dart';
-import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
+import 'package:path/path.dart' as path;
+
 import 'dlcontext.dart';
 
 String _manifestUrl(String file) {
@@ -15,9 +18,9 @@ String _assetUrl(String hash) {
 String _manifestPath;
 String _assetsPath;
 
-Future initialize() async {
-  _manifestPath = path.join(cdnOutputPath, 'manifest', versionCode);
-  _assetsPath = path.join(cdnOutputPath, 'assets');
+Future initialize(ExportConfig config) async {
+  _manifestPath = path.join(config.pathConfig.cdnDir, 'manifest', versionCode);
+  _assetsPath = path.join(config.pathConfig.cdnDir, 'assets');
   await Directory(_manifestPath).create(recursive: true);
   await Directory(_assetsPath).create(recursive: true);
 }
@@ -34,8 +37,9 @@ String manifestPath([String locale]) {
   return path.join(_manifestPath, manifestLocaleFiles[locale]);
 }
 
-Future<ManifestAssetBundle> pullAsset(ManifestAssetBundle asset, {bool useName = false}) async {
-  if (useName) {
+Future<ManifestAssetBundle> pullAsset(ManifestAssetBundle asset,
+    {bool useName}) async {
+  if (useName ?? false) {
     asset.file =
         File(path.joinAll([_assetsPath, '.named', ...asset.name.split('/')]));
   } else {

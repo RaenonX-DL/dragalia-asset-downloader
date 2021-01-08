@@ -12,8 +12,7 @@ extension Extension on String {
   bool isNullOrEmpty() => this == null || isEmpty;
 }
 
-Future exportAllAssets() async {
-  var config = await ExportConfig.create(contextRoot, configPath);
+Future exportAllAssets(ExportConfig config) async {
   var tempDir =
       await Directory(config.pathConfig.tempDir).create(recursive: true);
 
@@ -57,7 +56,7 @@ Future exportAssetsWithManifest(ExportConfig config, String locale) async {
   var isMaster = locale == manifestMasterLocale;
   var manifestFile = File(
     path.join(
-      exportOutputDir,
+      config.pathConfig.exportDir,
       'assets',
       isMaster ? 'manifest.json' : 'manifest@$locale.json',
     ),
@@ -205,7 +204,7 @@ Future exportAssets(
   var arguments = [
     'convert',
     bundlePath,
-    exportOutputDir,
+    config.pathConfig.exportDir,
     '-m',
     settingPath,
   ];
@@ -239,7 +238,7 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle awbAsset,
 
   var assetDir = awbAsset.name.split('/');
   var exportDir = Directory(path.joinAll([
-    exportOutputDir,
+    config.pathConfig.exportDir,
     config.pathConfig.audio.exportDir,
     ...assetDir.sublist(0, assetDir.length - 1),
     path.basenameWithoutExtension(awbAsset.name)

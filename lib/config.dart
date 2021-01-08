@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:dl_datamine/dlcontext.dart';
 import 'package:dl_datamine/dlmanifest.dart';
 import 'package:path/path.dart' as path;
 
@@ -44,10 +43,13 @@ class AudioConfig {
   AudioConfig._(this.regExp, this.exportDir, this.indexFile, this.index,
       this.vgmStreamDir, this.vgmStreamExe);
 
-  static Future<AudioConfig> parse(Map<String, dynamic> configBody) async {
-    var indexFile =
-        await File(path.join(incrementalOutputPath, configBody['indexPath']));
+  static Future<AudioConfig> parse(
+      String incrPath, Map<String, dynamic> configBody) async {
+    var indexFile = await File(path.join(incrPath, configBody['indexPath']));
     // Create initial index file if not exists
+    if (!await indexFile.parent.exists()) {
+      await indexFile.parent.create(recursive: true);
+    }
     if (!await indexFile.exists()) {
       await indexFile.writeAsString(jsonEncode({}));
     }
@@ -103,16 +105,28 @@ class PathConfig {
   final DecrypterConfig decrypter;
   final AssetStudioConfig assetStudio;
   final AudioConfig audio;
+  final String cdnDir;
+  final String exportDir;
+  final String incrDir;
   final String tempDir;
 
-  PathConfig._(this.decrypter, this.assetStudio, this.audio, this.tempDir);
+  PathConfig._(this.decrypter, this.assetStudio, this.audio, this.cdnDir,
+      this.exportDir, this.incrDir, this.tempDir);
 
   static Future<PathConfig> parse(Map<String, dynamic> configBody) async {
+    var cdnDir = path.joinAll(configBody['cdnDir'].split('/'));
+    var exportDir = path.joinAll(configBody['exportDir'].split('/'));
+    var incrDir = path.joinAll(configBody['incrDir'].split('/'));
+    var tempDir = path.joinAll(configBody['tempDir'].split('/'));
+
     return PathConfig._(
         DecrypterConfig.parse(configBody['decrypter']),
         AssetStudioConfig.parse(configBody['assetStudio']),
-        await AudioConfig.parse(configBody['audio']),
-        configBody['tempDir']);
+        await AudioConfig.parse(incrDir, configBody['audio']),
+        cdnDir,
+        exportDir,
+        incrDir,
+        tempDir);
   }
 }
 

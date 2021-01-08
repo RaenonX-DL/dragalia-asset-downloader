@@ -16,6 +16,9 @@
       "vgmStreamDir": "lib/vgmstream",
       "vgmStreamExe": "vgmstream.exe"
     },
+    "cdnDir": ".exclude/cdn",
+    "exportDir": ".exclude/media",
+    "incrDir": ".exclude/incr",
     "tempDir": ".exclude/temp"
   },
   "single": [
@@ -28,7 +31,7 @@
       "config": "actions.json"
     },
     {
-      "name": "imags/ingame/ui",
+      "name": "images/ingame/ui",
       "config": "ui.json"
     }
   ],

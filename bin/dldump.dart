@@ -27,14 +27,14 @@ extension DurationExtension on Duration {
 }
 
 void main(List<String> arguments) async {
-  await context.initWithArguments(arguments);
+  var config = await context.initWithArguments(arguments);
 
   var dumpStartTime = DateTime.now();
 
-  await cdn.initialize();
+  await cdn.initialize(config);
   await cdn.downloadAllManifest();
-  await exporter.exportAllAssets();
-  await imgproc.compose_all_alpha();
+  await exporter.exportAllAssets(config);
+  await imgproc.composeAlpha(config);
 
   var dumpDuration = DateTime.now().difference(dumpStartTime).abs();
   print('${DateTime.now().toIso8601String()}: '
