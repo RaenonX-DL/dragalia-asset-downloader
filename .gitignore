@@ -5,6 +5,9 @@ bin/temp
 bin/incr
 bin/.exclude
 
+# Log file
+*.log
+
 # Sandbox files
 bin/config-temp.json
 

@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:dl_datamine/config.dart';
 import 'package:dl_datamine/dlcdn.dart' as cdn;
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 
-import 'dlmanifest.dart';
 import 'dlcontext.dart';
+import 'dlmanifest.dart';
 
 extension Extension on String {
   bool isNullOrEmpty() => this == null || isEmpty;
@@ -184,7 +185,7 @@ Future exportAudioAsset(ExportConfig config, Manifest manifest) async {
 }
 
 Future<String> createAssetsFile(
-    ExportConfig config, List<File> assetFiles) async {
+    ExportConfig config, Iterable<File> assetFiles) async {
   var file = File(path.join(config.pathConfig.tempDir, Uuid().v1() + '.files'));
   var writer = file.openWrite();
   for (var assetFile in assetFiles) {
