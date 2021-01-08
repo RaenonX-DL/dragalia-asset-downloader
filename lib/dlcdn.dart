@@ -32,9 +32,16 @@ Future downloadAllManifest() async {
   }
 }
 
-String manifestPath([String locale]) {
+String manifestAssetPath([String locale]) {
   locale ??= manifestMasterLocale;
   return path.join(_manifestPath, manifestLocaleFiles[locale]);
+}
+
+String manifestJsonPath(String rootDir, String locale) {
+  var manifestFileName = locale == manifestMasterLocale
+      ? 'manifest.json'
+      : 'manifest@$locale.json';
+  return path.join(rootDir, 'assets', manifestFileName);
 }
 
 Future<ManifestAssetBundle> pullAsset(ManifestAssetBundle asset,

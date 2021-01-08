@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:math';
 
 import 'dlcdn.dart' as cdn;
 
@@ -18,10 +17,10 @@ class ManifestAssetBundle {
 }
 
 class Manifest {
-  Map<String, ManifestAssetBundle> _unityAssets;
-  Map<String, ManifestAssetBundle> _rawAssets;
+  Map<String, ManifestAssetBundle> unityAssets;
+  Map<String, ManifestAssetBundle> rawAssets;
 
-  Manifest._(this._unityAssets, this._rawAssets);
+  Manifest._(this.unityAssets, this.rawAssets);
 
   factory Manifest.fromJson(Map<String, dynamic> json) {
     var unityAssets = <String, ManifestAssetBundle>{};
@@ -45,40 +44,45 @@ class Manifest {
   }
 
   Future<ManifestAssetBundle> pullUnityAsset(String name) {
-    var asset = _unityAssets[name];
+    var asset = unityAssets[name];
     if (asset == null) {
       return Future.error(Exception('asset $name is not found in manifest'));
     }
     return cdn.pullAsset(asset);
   }
 
-  Iterable<Future<List<ManifestAssetBundle>>> pullUnityAssets(RegExp expr) {
-    var assets = _unityAssets.entries
-        .where((e) => expr.hasMatch(e.key))
-        .map((e) => e.value)
-        .toList();
-
-    return pullAssets(assets);
+  Iterable<Future<List<ManifestAssetBundle>>> pullUnityAssets(RegExp expr,
+      {bool Function(ManifestAssetBundle) filter}) {
+    return pullAssets(selectAssetsRegExp(unityAssets, expr, filter: filter));
   }
 
-  Iterable<Future<List<ManifestAssetBundle>>> pullRawAssets(RegExp expr) {
-    var assets = _rawAssets.entries
-        .where((e) => expr.hasMatch(e.key))
-        .map((e) => e.value)
-        .toList();
+  Iterable<Future<List<ManifestAssetBundle>>> pullRawAssets(RegExp expr,
+      {bool Function(ManifestAssetBundle) filter}) {
+    return pullAssets(selectAssetsRegExp(rawAssets, expr, filter: filter),
+        useName: true);
+  }
 
-    return pullAssets(assets, useName: true);
+  Iterable<ManifestAssetBundle> selectAssetsRegExp(
+      Map<String, ManifestAssetBundle> assets, RegExp expr,
+      {bool Function(ManifestAssetBundle) filter}) {
+    var assetsIter =
+        assets.entries.where((e) => expr.hasMatch(e.key)).map((e) => e.value);
+
+    if (filter != null) {
+      assetsIter = assetsIter.where(filter);
+    }
+
+    return assetsIter;
   }
 
   Iterable<Future<List<ManifestAssetBundle>>> pullAssets(
-      List<ManifestAssetBundle> assets,
+      Iterable<ManifestAssetBundle> assets,
       {bool useName}) {
     var assetChunkSize = 50;
     var assetChunks = <List<ManifestAssetBundle>>[];
 
     for (var start = 0; start < assets.length; start += assetChunkSize) {
-      assetChunks.add(
-          assets.sublist(start, min(start + assetChunkSize, assets.length)));
+      assetChunks.add(assets.skip(start).take(assetChunkSize).toList());
     }
 
     return assetChunks.map((assetChunk) => Future.wait(

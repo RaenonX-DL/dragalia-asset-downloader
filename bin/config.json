@@ -12,9 +12,11 @@
     "audio": {
       "regExp": ".*(acb|awb)",
       "exportDir": "audio",
-      "indexPath": "audio.json",
       "vgmStreamDir": "lib/vgmstream",
       "vgmStreamExe": "vgmstream.exe"
+    },
+    "index": {
+      "indexPath": "index.json"
     },
     "cdnDir": ".exclude/cdn",
     "exportDir": ".exclude/media",

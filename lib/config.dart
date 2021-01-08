@@ -32,50 +32,6 @@ class MultiConfig {
   }
 }
 
-class AudioConfig {
-  final RegExp regExp;
-  final String exportDir;
-  final File indexFile;
-  final Map<String, dynamic> index;
-  final String vgmStreamDir;
-  final String vgmStreamExe;
-
-  AudioConfig._(this.regExp, this.exportDir, this.indexFile, this.index,
-      this.vgmStreamDir, this.vgmStreamExe);
-
-  static Future<AudioConfig> parse(
-      String incrPath, Map<String, dynamic> configBody) async {
-    var indexFile = await File(path.join(incrPath, configBody['indexPath']));
-    // Create initial index file if not exists
-    if (!await indexFile.parent.exists()) {
-      await indexFile.parent.create(recursive: true);
-    }
-    if (!await indexFile.exists()) {
-      await indexFile.writeAsString(jsonEncode({}));
-    }
-
-    return AudioConfig._(
-        RegExp(configBody['regExp']),
-        path.joinAll(configBody['exportDir'].split('/')),
-        indexFile,
-        jsonDecode(await indexFile.readAsString()),
-        path.joinAll(configBody['vgmStreamDir'].split('/')),
-        configBody['vgmStreamExe']);
-  }
-
-  Future updateIndexFile() async {
-    await indexFile.writeAsString(jsonEncode(index));
-  }
-
-  void updateIndex(ManifestAssetBundle asset) {
-    index[asset.name] = asset.hash;
-  }
-
-  bool isIndexHashMatch(ManifestAssetBundle asset) {
-    return index.containsKey(asset.name) && index[asset.name] == asset.hash;
-  }
-}
-
 class DecrypterConfig {
   final String dir;
   final String dll;
@@ -101,32 +57,97 @@ class AssetStudioConfig {
   }
 }
 
+class AudioConfig {
+  final RegExp regExp;
+  final String exportDir;
+  final String vgmStreamDir;
+  final String vgmStreamExe;
+
+  AudioConfig._(
+      this.regExp, this.exportDir, this.vgmStreamDir, this.vgmStreamExe);
+
+  factory AudioConfig.parse(Map<String, dynamic> configBody) {
+    return AudioConfig._(
+        RegExp(configBody['regExp']),
+        path.joinAll(configBody['exportDir'].split('/')),
+        path.joinAll(configBody['vgmStreamDir'].split('/')),
+        configBody['vgmStreamExe']);
+  }
+}
+
+class IndexConfig {
+  final File indexFile;
+  final Map<String, dynamic> index;
+
+  IndexConfig._(
+    this.indexFile,
+    this.index,
+  );
+
+  static Future<IndexConfig> parse(
+      String incrDir, Map<String, dynamic> configBody) async {
+    var indexFile = await File(path.join(incrDir, configBody['indexPath']));
+    // Create initial index file if not exists
+    if (!await indexFile.parent.exists()) {
+      await indexFile.parent.create(recursive: true);
+    }
+    if (!await indexFile.exists()) {
+      await indexFile.writeAsString(jsonEncode({}));
+    }
+
+    return IndexConfig._(indexFile, jsonDecode(await indexFile.readAsString()));
+  }
+
+  Future updateIndexFile() async {
+    await indexFile.writeAsString(jsonEncode(index));
+  }
+
+  void updateIndex(String locale, ManifestAssetBundle asset) {
+    if (!index.containsKey(locale)) {
+      index[locale] = {};
+    }
+
+    index[locale][asset.name] = asset.hash;
+  }
+
+  bool isIndexHashMatch(String locale, ManifestAssetBundle asset) {
+    if (!index.containsKey(locale)) {
+      return false;
+    }
+
+    if (!index[locale].containsKey(asset.name)) {
+      return false;
+    }
+
+    return index[locale][asset.name] == asset.hash;
+  }
+}
+
 class PathConfig {
   final DecrypterConfig decrypter;
   final AssetStudioConfig assetStudio;
   final AudioConfig audio;
+  final IndexConfig index;
   final String cdnDir;
   final String exportDir;
   final String incrDir;
   final String tempDir;
 
-  PathConfig._(this.decrypter, this.assetStudio, this.audio, this.cdnDir,
-      this.exportDir, this.incrDir, this.tempDir);
+  PathConfig._(this.decrypter, this.assetStudio, this.audio, this.index,
+      this.cdnDir, this.exportDir, this.incrDir, this.tempDir);
 
   static Future<PathConfig> parse(Map<String, dynamic> configBody) async {
-    var cdnDir = path.joinAll(configBody['cdnDir'].split('/'));
-    var exportDir = path.joinAll(configBody['exportDir'].split('/'));
     var incrDir = path.joinAll(configBody['incrDir'].split('/'));
-    var tempDir = path.joinAll(configBody['tempDir'].split('/'));
 
     return PathConfig._(
         DecrypterConfig.parse(configBody['decrypter']),
         AssetStudioConfig.parse(configBody['assetStudio']),
-        await AudioConfig.parse(incrDir, configBody['audio']),
-        cdnDir,
-        exportDir,
+        AudioConfig.parse(configBody['audio']),
+        await IndexConfig.parse(incrDir, configBody['index']),
+        path.joinAll(configBody['cdnDir'].split('/')),
+        path.joinAll(configBody['exportDir'].split('/')),
         incrDir,
-        tempDir);
+        path.joinAll(configBody['tempDir'].split('/')));
   }
 }
 

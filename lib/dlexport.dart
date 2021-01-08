@@ -14,92 +14,111 @@ extension Extension on String {
 }
 
 Future exportAllAssets(ExportConfig config) async {
-  var tempDir =
-      await Directory(config.pathConfig.tempDir).create(recursive: true);
+  // Create temporary directory
+  var tempDir = await Directory(config.pathConfig.tempDir);
+  if (await tempDir.exists()) {
+    await tempDir.delete(recursive: true);
+  }
+  await tempDir.create(recursive: true);
 
-  for (var loc in manifestLocaleFiles.keys) {
-    var encrypted = cdn.manifestPath(loc);
-    var decrypted = '$encrypted$decryptedExtension';
-
-    var proc = await Process.start(
-      dotnetBin,
-      [
-        config.decryptDLLPath,
-        encrypted,
-        decrypted,
-        manifestKey,
-        manifestIV,
-      ],
-      runInShell: true,
-    );
-    await stdout.addStream(proc.stdout);
-    await stderr.addStream(proc.stderr);
-
-    var exitCode = await proc.exitCode;
-
-    if (exitCode != 0) {
-      throw Exception('error: failed to decrypt $encrypted ($exitCode)');
-    }
-    await exportAssets(
-      config,
-      decrypted,
-      path.join(config.assetStudioConfigDir, 'manifest.json'),
-      suffix: loc == manifestMasterLocale ? null : '@$loc',
-    );
-
-    await exportAssetsWithManifest(config, loc);
+  // Export all assets
+  for (var locale in manifestLocaleFiles.keys) {
+    // Export a manifest and store it in the temporary directory
+    await exportLocalizedManifest(config, locale);
+    // Load the exported manifest
+    var manifest = await loadLocalizedManifest(config, locale);
+    // Try export all listed assets in the manifest
+    await exportAssetsWithManifest(config, locale, manifest);
   }
 
+  // Delete temporary directory
   await tempDir.delete(recursive: true);
 }
 
-Future exportAssetsWithManifest(ExportConfig config, String locale) async {
-  var isMaster = locale == manifestMasterLocale;
-  var manifestFile = File(
-    path.join(
-      config.pathConfig.exportDir,
-      'assets',
-      isMaster ? 'manifest.json' : 'manifest@$locale.json',
-    ),
+Future exportLocalizedManifest(ExportConfig config, String locale) async {
+  var encrypted = cdn.manifestAssetPath(locale);
+  var decrypted = '$encrypted$decryptedExtension';
+
+  // Decrypt manifest
+  var proc = await Process.start(
+    dotnetBin,
+    [
+      config.decryptDLLPath,
+      encrypted,
+      decrypted,
+      manifestKey,
+      manifestIV,
+    ],
+    runInShell: true,
   );
-  var json = jsonDecode(await manifestFile.readAsString());
-  var manifest = Manifest.fromJson(json);
+  await stdout.addStream(proc.stdout);
+  await stderr.addStream(proc.stderr);
+
+  var exitCode = await proc.exitCode;
+
+  if (exitCode != 0) {
+    throw Exception('error: failed to decrypt $encrypted ($exitCode)');
+  }
+
+  // Export manifest file
+  await exportAssets(
+    config,
+    decrypted,
+    path.join(config.assetStudioConfigDir, 'manifest.json'),
+    suffix: locale == manifestMasterLocale ? null : '@$locale',
+  );
+}
+
+Future<Manifest> loadLocalizedManifest(
+    ExportConfig config, String locale) async {
+  var manifestFile =
+      File(cdn.manifestJsonPath(config.pathConfig.exportDir, locale));
+
+  return Manifest.fromJson(jsonDecode(await manifestFile.readAsString()));
+}
+
+Future exportAssetsWithManifest(
+    ExportConfig config, String locale, Manifest manifest) async {
+  var isMaster = locale == manifestMasterLocale;
 
   // Export assets
   if (isMaster) {
     for (var entry in config.single) {
-      await exportSingleAsset(config, entry, manifest);
+      await exportSingleAsset(config, locale, entry, manifest);
     }
 
     for (var entry in config.multi) {
-      await exportMultiAsset(config, entry, manifest);
+      await exportMultiAsset(config, locale, entry, manifest);
     }
   } else {
     await exportMasterAsset(config, locale, manifest);
   }
 
-  await exportAudioAsset(config, manifest);
+  await exportAudioAsset(config, locale, manifest);
 }
 
 Future exportMasterAsset(
     ExportConfig config, String locale, Manifest manifest) async {
-  var masterFile = await manifest.pullUnityAsset('master');
+  var masterAsset = await manifest.pullUnityAsset('master');
 
-  // ::group:: for GH Actions log grouping
   print('::group::Export master');
 
-  await exportAssets(
-    config,
-    masterFile.file.path,
-    path.join(config.assetStudioConfigDir, 'localized.json'),
-    suffix: '@$locale',
-  );
+  if (!config.pathConfig.index.isIndexHashMatch(locale, masterAsset)) {
+    await exportAssets(
+      config,
+      masterAsset.file.path,
+      path.join(config.assetStudioConfigDir, 'localized.json'),
+      suffix: '@$locale',
+    );
+    config.pathConfig.index.updateIndex(locale, masterAsset);
+    await config.pathConfig.index.updateIndexFile();
+  }
 
   print('::endgroup::');
 }
 
-Future exportSingleAsset(
-    ExportConfig config, SingleConfig configEntry, Manifest manifest) async {
+Future exportSingleAsset(ExportConfig config, String locale,
+    SingleConfig configEntry, Manifest manifest) async {
   var assetName = configEntry.name;
   var assetConfig = configEntry.config;
 
@@ -109,19 +128,23 @@ Future exportSingleAsset(
 
   print('Assets pulled.');
 
-  await exportAssets(
-    config,
-    singleAsset.file.path,
-    path.join(config.assetStudioConfigDir, assetConfig),
-  );
+  if (!config.pathConfig.index.isIndexHashMatch(locale, singleAsset)) {
+    await exportAssets(
+      config,
+      singleAsset.file.path,
+      path.join(config.assetStudioConfigDir, assetConfig),
+    );
+    config.pathConfig.index.updateIndex(locale, singleAsset);
+    await config.pathConfig.index.updateIndexFile();
+  }
 
   print('Assets exported.');
 
   print('::endgroup::');
 }
 
-Future exportMultiAsset(
-    ExportConfig config, MultiConfig configEntry, Manifest manifest) async {
+Future exportMultiAsset(ExportConfig config, String locale,
+    MultiConfig configEntry, Manifest manifest) async {
   var assetRegExp = configEntry.regExp;
   var assetConfig = configEntry.config;
   var skipExists = configEntry.skipExists;
@@ -130,34 +153,45 @@ Future exportMultiAsset(
 
   var assets = <ManifestAssetBundle>[];
 
-  for (var pullAction in manifest.pullUnityAssets(assetRegExp)) {
+  for (var pullAction in manifest.pullUnityAssets(assetRegExp,
+      filter: (asset) =>
+          !config.pathConfig.index.isIndexHashMatch(locale, asset))) {
     assets.addAll(await pullAction);
   }
 
   print('Assets pulled.');
 
-  await exportAssets(
-    config,
-    await createAssetsFile(config, assets.map((e) => e.file)),
-    path.join(config.assetStudioConfigDir, assetConfig),
-    skipExists: skipExists,
-  );
+  var assetFiles = assets.map((e) => e.file);
+  if (assetFiles.isNotEmpty) {
+    await exportAssets(
+      config,
+      await createAssetsFile(config, assets.map((e) => e.file)),
+      path.join(config.assetStudioConfigDir, assetConfig),
+      skipExists: skipExists,
+    );
+  }
+
+  assets.forEach((asset) {
+    config.pathConfig.index.updateIndex(locale, asset);
+  });
+  await config.pathConfig.index.updateIndexFile();
 
   print('Assets exported.');
 
   print('::endgroup::');
 }
 
-Future exportAudioAsset(ExportConfig config, Manifest manifest) async {
+Future exportAudioAsset(
+    ExportConfig config, String locale, Manifest manifest) async {
   print('::group::Export audio');
 
   var audioAssets = <ManifestAssetBundle>[];
 
-  for (var pullAction
-      in manifest.pullRawAssets(config.pathConfig.audio.regExp)) {
+  for (var pullAction in manifest.pullRawAssets(config.pathConfig.audio.regExp,
+      filter: (asset) =>
+          !config.pathConfig.index.isIndexHashMatch(locale, asset))) {
     audioAssets.addAll((await pullAction)
-        .where((asset) => path.extension(asset.file.path) == '.awb')
-        .where((asset) => !config.pathConfig.audio.isIndexHashMatch(asset)));
+        .where((asset) => path.extension(asset.file.path) == '.awb'));
   }
 
   print('Assets pulled.');
@@ -169,15 +203,15 @@ Future exportAudioAsset(ExportConfig config, Manifest manifest) async {
   for (var idx = 0; idx < audioAssets.length; idx += 1) {
     var audioAsset = audioAssets[idx];
 
-    config.pathConfig.audio.updateIndex(audioAsset);
-
     print('${DateTime.now().toIso8601String()}: '
         'Exporting Audio (${idx + 1} / ${audioAssets.length}) '
         '${audioAsset.file.path}');
     await exportAudio(config, audioAsset);
+
+    config.pathConfig.index.updateIndex(locale, audioAsset);
   }
 
-  await config.pathConfig.audio.updateIndexFile();
+  await config.pathConfig.index.updateIndexFile();
 
   print('Assets exported.');
 
