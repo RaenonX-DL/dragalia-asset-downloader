@@ -1,9 +1,14 @@
 {
-    "Exports": [
-        {
-            "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/master/"],
-			"ExportType": "Convert"
-        }
-    ]
+  "Exports": [
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "/resources/master/"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    }
+  ]
 }

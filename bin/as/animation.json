@@ -1,9 +1,14 @@
 {
   "Exports": [
     {
-      "Types": ["AnimationClip"],
-      "Containers": ["/resources/characters/motion"],
-	  "ExportType": "Convert"
+      "Types": [
+        "AnimatorOverrideController"
+      ],
+      "Containers": [
+        "/resources/characters/motion/(.*)\\.overridecontroller"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Sync"
     }
   ]
 }

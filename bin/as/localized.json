@@ -1,9 +1,14 @@
 {
-    "Exports": [
-        {
-            "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/master/textlabel.asset"],
-			"ExportType": "Convert"
-        }
-    ]
+  "Exports": [
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "/resources/master/textlabel.asset"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    }
+  ]
 }

@@ -1,14 +1,24 @@
 {
-    "Exports": [
-        {
-            "Types": ["GameObject"],
-            "Containers": ["/resources/actions/"],
-			"ExportType": "Convert"
-        },
-        {
-            "Types": ["MonoBehaviour"],
-            "Containers": ["/resources/actions/actionpartslist.asset"],
-			"ExportType": "Convert"
-        }
-    ]
+  "Exports": [
+    {
+      "Types": [
+        "GameObject"
+      ],
+      "Containers": [
+        "/resources/actions/"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    },
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "/resources/actions/actionpartslist.asset"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    }
+  ]
 }

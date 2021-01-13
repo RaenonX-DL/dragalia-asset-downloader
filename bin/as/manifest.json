@@ -1,9 +1,14 @@
 {
-    "Exports": [
-        {
-            "Types": ["MonoBehaviour"],
-            "Containers": ["manifest.asset"],
-			"ExportType": "Convert"
-        }
-    ]
+  "Exports": [
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "manifest.asset"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    }
+  ]
 }

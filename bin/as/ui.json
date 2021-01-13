@@ -1,9 +1,14 @@
 {
   "Exports": [
     {
-      "Types": ["Sprite"],
-      "Containers": ["/resources/images/ingame/ui/atlas/ui.png"],
-	  "ExportType": "Convert"
+      "Types": [
+        "Sprite"
+      ],
+      "Containers": [
+        "/resources/images/ingame/ui/atlas/ui.png"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
     }
   ]
 }
