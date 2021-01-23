@@ -2,6 +2,16 @@
   "Exports": [
     {
       "Types": [
+        "AnimatorController"
+      ],
+      "Containers": [
+        "/resources/characters/motion/(.*)\\.controller"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Sync"
+    },
+    {
+      "Types": [
         "AnimatorOverrideController"
       ],
       "Containers": [
