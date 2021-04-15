@@ -90,9 +90,9 @@ Future exportAssetsWithManifest(
     for (var entry in config.multi) {
       await exportMultiAsset(config, locale, entry, manifest);
     }
-  } else {
-    await exportMasterAsset(config, locale, manifest);
   }
+
+  await exportMasterAsset(config, locale, manifest);
 
   await exportAudioAsset(config, locale, manifest);
 }
@@ -101,7 +101,7 @@ Future exportMasterAsset(
     ExportConfig config, String locale, Manifest manifest) async {
   var masterAsset = await manifest.pullUnityAsset('master');
 
-  print('::group::Export master');
+  print('::group::Export master (${locale})');
 
   if (!config.pathConfig.index.isIndexHashMatch(locale, masterAsset)) {
     await exportAssets(
@@ -122,7 +122,7 @@ Future exportSingleAsset(ExportConfig config, String locale,
   var assetName = configEntry.name;
   var assetConfig = configEntry.config;
 
-  print('::group::Export $assetName (single)');
+  print('::group::Export $assetName (single / ${locale})');
 
   var singleAsset = await manifest.pullUnityAsset(assetName);
 
@@ -149,7 +149,7 @@ Future exportMultiAsset(ExportConfig config, String locale,
   var assetConfig = configEntry.config;
   var skipExists = configEntry.skipExists;
 
-  print('::group::Export $assetRegExp (multi)');
+  print('::group::Export $assetRegExp (multi / ${locale})');
 
   var assets = <ManifestAssetBundle>[];
 
@@ -181,34 +181,72 @@ Future exportMultiAsset(ExportConfig config, String locale,
   print('::endgroup::');
 }
 
-Future exportAudioAsset(
+Future<List<ManifestAssetBundle>> pullAudioAssets(
     ExportConfig config, String locale, Manifest manifest) async {
-  print('::group::Export audio');
-
-  var audioAssets = <ManifestAssetBundle>[];
+  var assets = <ManifestAssetBundle>[];
 
   for (var pullAction in manifest.pullRawAssets(config.pathConfig.audio.regExp,
       filter: (asset) =>
           !config.pathConfig.index.isIndexHashMatch(locale, asset))) {
-    audioAssets.addAll((await pullAction)
-        .where((asset) => path.extension(asset.file.path) == '.awb'));
+    assets.addAll((await pullAction).where((asset) =>
+        <String>['.awb', '.acb'].contains(path.extension(asset.file.path))));
   }
+
+  return assets;
+}
+
+Future<List<ManifestAssetBundle>> getAudioAssetsForExport(
+    List<ManifestAssetBundle> assets) async {
+  var isSameAudioAsset =
+      (ManifestAssetBundle acbAsset, ManifestAssetBundle awbAsset) =>
+          path.basenameWithoutExtension(acbAsset.file.path) ==
+          path.basenameWithoutExtension(awbAsset.file.path);
+
+  var awbAssets = <ManifestAssetBundle>[];
+  var acbAssets = <ManifestAssetBundle>[];
+  var ret = <ManifestAssetBundle>[];
+
+  awbAssets.addAll(assets
+      .where((asset) => path.extension(asset.file.path).endsWith('.awb')));
+  acbAssets.addAll(assets
+      .where((asset) => path.extension(asset.file.path).endsWith('.acb')));
+
+  ret.addAll(awbAssets);
+  ret.addAll(acbAssets.where((acbAsset) =>
+      !awbAssets.any((awbAsset) => isSameAudioAsset(acbAsset, awbAsset))));
+
+  return ret;
+}
+
+Future exportAudioAsset(
+    ExportConfig config, String locale, Manifest manifest) async {
+  print('::group::Export audio (${locale})');
+
+  var audioAssets = await pullAudioAssets(config, locale, manifest);
+  var audioAssetsForExport = await getAudioAssetsForExport(audioAssets);
 
   print('Assets pulled.');
 
-  if (audioAssets.isEmpty) {
-    print('${DateTime.now().toIso8601String()}: No new audio assets detected.');
+  if (audioAssetsForExport.isEmpty) {
+    print(
+        '${DateTime.now().toIso8601String()}: No new audio assets to be exported.');
+    print('::endgroup::');
+    return;
   }
 
-  for (var idx = 0; idx < audioAssets.length; idx += 1) {
-    var audioAsset = audioAssets[idx];
+  // Export audio
+  for (var idx = 0; idx < audioAssetsForExport.length; idx += 1) {
+    var audioAsset = audioAssetsForExport[idx];
 
     print('${DateTime.now().toIso8601String()}: '
-        'Exporting Audio (${idx + 1} / ${audioAssets.length}) '
+        'Exporting Audio (${idx + 1} / ${audioAssetsForExport.length}) '
         '${audioAsset.file.path}');
     await exportAudio(config, audioAsset);
+  }
 
-    config.pathConfig.index.updateIndex(locale, audioAsset);
+  // Update index
+  for (var idx = 0; idx < audioAssets.length; idx += 1) {
+    config.pathConfig.index.updateIndex(locale, audioAssets[idx]);
   }
 
   await config.pathConfig.index.updateIndexFile();
@@ -263,20 +301,20 @@ Future exportAssets(
   }
 }
 
-Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle awbAsset,
+Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle asset,
     int subsongIndex, bool streamHasName) async {
-  var awbFilePath = awbAsset.file.path;
+  var assetPath = asset.file.path;
 
-  if (!await File(awbFilePath).exists()) {
-    throw Exception('error: awb audio file not exists. ($awbFilePath)');
+  if (!await File(assetPath).exists()) {
+    throw Exception('error: awb audio file not exists. ($assetPath)');
   }
 
-  var assetDir = awbAsset.name.split('/');
+  var assetDir = asset.name.split('/');
   var exportDir = Directory(path.joinAll([
     config.pathConfig.exportDir,
     config.pathConfig.audio.exportDir,
     ...assetDir.sublist(0, assetDir.length - 1),
-    path.basenameWithoutExtension(awbAsset.name)
+    path.basenameWithoutExtension(asset.name)
   ]));
   await exportDir.create(recursive: true);
 
@@ -293,7 +331,7 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle awbAsset,
     '-i',
     '-o',
     exportPath,
-    awbFilePath,
+    assetPath,
   ];
   var proc = await Process.run(
     config.vgmStreamPath,
@@ -307,22 +345,22 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle awbAsset,
 
   if (await proc.exitCode != 0) {
     throw Exception('error: failed to export the audio subsong.'
-        ' (#$subsongIndex of $awbFilePath to $exportPath)');
+        ' (#$subsongIndex of $assetPath to $exportPath)');
   }
 }
 
-Future exportAudio(ExportConfig config, ManifestAssetBundle awbAsset) async {
-  var awbFile = awbAsset.file;
+Future exportAudio(ExportConfig config, ManifestAssetBundle audioAsset) async {
+  var audioFile = audioAsset.file;
 
-  if (!await awbFile.exists()) {
-    throw Exception('error: awb audio file not exists. (${awbFile.path})');
+  if (!await audioFile.exists()) {
+    throw Exception('error: audio file not exists. (${audioFile.path})');
   }
 
   // Get metadata
   var arguments = [
     '-I',
     '-m',
-    awbFile.path,
+    audioFile.path,
   ];
   var proc = await Process.run(
     config.vgmStreamPath,
@@ -330,23 +368,26 @@ Future exportAudio(ExportConfig config, ManifestAssetBundle awbAsset) async {
     runInShell: true,
   );
 
-  var infoJson = jsonDecode(proc.stdout);
-  if (!(proc.stderr as String).isNullOrEmpty()) {
-    stderr.write(proc.stderr);
+  var stdErr = proc.stderr as String;
+  if (!(stdErr).isNullOrEmpty()) {
+    stderr.write(stdErr + '\n');
   }
 
   if (await proc.exitCode != 0) {
     throw Exception(
-        'error: failed to get the audio metadata. (${awbFile.path})');
+        'error: failed to get the audio metadata. (${audioFile.path})');
   }
+
+  var infoJson = jsonDecode(proc.stdout);
 
   // Export streams
   var streamCount = infoJson['streamInfo']['total'];
   var streamHasName = infoJson['streamInfo']['name'] != null;
 
   var tasks = Iterable<int>.generate(streamCount, (i) => (i + 1)).map(
-      (subsongIndex) async =>
-          {exportAudioSubsong(config, awbAsset, subsongIndex, streamHasName)});
+      (subsongIndex) async => {
+            exportAudioSubsong(config, audioAsset, subsongIndex, streamHasName)
+          });
 
   await Future.wait(tasks);
 }
