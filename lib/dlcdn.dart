@@ -38,10 +38,7 @@ String manifestAssetPath([String locale]) {
 }
 
 String manifestJsonPath(String rootDir, String locale) {
-  var manifestFileName = locale == manifestMasterLocale
-      ? 'manifest.json'
-      : 'manifest@$locale.json';
-  return path.join(rootDir, 'assets', manifestFileName);
+  return path.join(rootDir, 'assets', 'manifest.json');
 }
 
 Future<ManifestAssetBundle> pullAsset(ManifestAssetBundle asset,

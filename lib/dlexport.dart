@@ -65,18 +65,13 @@ Future exportLocalizedManifest(ExportConfig config, String locale) async {
     config,
     locale,
     decrypted,
-    path.join(config.assetStudioConfigDir, 'manifest.json'),
-    suffix: locale == manifestMasterLocale ? null : '@$locale',
-  );
+    path.join(config.assetStudioConfigDir, 'manifest.json'));
 }
 
 Future<Manifest> loadLocalizedManifest(
     ExportConfig config, String locale) async {
-  // DON'T use the localized export directory
-  // because the localized manifest files are located
-  // under the master locale directory
-  var manifestFile =
-      File(cdn.manifestJsonPath(config.pathConfig.getExportDir(), locale));
+  var manifestFile = File(cdn.manifestJsonPath(
+      config.pathConfig.getExportDir(locale: locale), locale));
 
   return Manifest.fromJson(jsonDecode(await manifestFile.readAsString()));
 }
