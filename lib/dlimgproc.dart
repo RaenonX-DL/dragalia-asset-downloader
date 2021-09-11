@@ -1,11 +1,12 @@
 import 'dart:io';
+
 import 'package:dl_datamine/config.dart';
 import 'package:dl_datamine/dlcontext.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 
 Future composeAlpha(ExportConfig config) async {
-  var srcDir = Directory(config.pathConfig.exportDir);
+  var srcDir = Directory(config.pathConfig.getExportDir());
   if (!await srcDir.exists()) {
     await srcDir.create(recursive: true);
   }

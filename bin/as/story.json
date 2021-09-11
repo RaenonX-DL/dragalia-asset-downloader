@@ -1,0 +1,14 @@
+{
+  "Exports": [
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "/resources/story"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    }
+  ]
+}

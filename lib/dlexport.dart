@@ -63,6 +63,7 @@ Future exportLocalizedManifest(ExportConfig config, String locale) async {
   // Export manifest file
   await exportAssets(
     config,
+    locale,
     decrypted,
     path.join(config.assetStudioConfigDir, 'manifest.json'),
     suffix: locale == manifestMasterLocale ? null : '@$locale',
@@ -71,23 +72,28 @@ Future exportLocalizedManifest(ExportConfig config, String locale) async {
 
 Future<Manifest> loadLocalizedManifest(
     ExportConfig config, String locale) async {
+  // DON'T use the localized export directory
+  // because the localized manifest files are located
+  // under the master locale directory
   var manifestFile =
-      File(cdn.manifestJsonPath(config.pathConfig.exportDir, locale));
+      File(cdn.manifestJsonPath(config.pathConfig.getExportDir(), locale));
 
   return Manifest.fromJson(jsonDecode(await manifestFile.readAsString()));
 }
 
 Future exportAssetsWithManifest(
     ExportConfig config, String locale, Manifest manifest) async {
-  var isMaster = locale == manifestMasterLocale;
+  var isMasterLocale = locale == manifestMasterLocale;
 
   // Export assets
-  if (isMaster) {
-    for (var entry in config.single) {
+  for (var entry in config.single) {
+    if (entry.multiLocale || isMasterLocale) {
       await exportSingleAsset(config, locale, entry, manifest);
     }
+  }
 
-    for (var entry in config.multi) {
+  for (var entry in config.multi) {
+    if (entry.multiLocale || isMasterLocale) {
       await exportMultiAsset(config, locale, entry, manifest);
     }
   }
@@ -106,6 +112,7 @@ Future exportMasterAsset(
   if (!config.pathConfig.index.isIndexHashMatch(locale, masterAsset)) {
     await exportAssets(
       config,
+      locale,
       masterAsset.file.path,
       path.join(config.assetStudioConfigDir, 'localized.json'),
       suffix: '@$locale',
@@ -131,6 +138,7 @@ Future exportSingleAsset(ExportConfig config, String locale,
   if (!config.pathConfig.index.isIndexHashMatch(locale, singleAsset)) {
     await exportAssets(
       config,
+      locale,
       singleAsset.file.path,
       path.join(config.assetStudioConfigDir, assetConfig),
     );
@@ -165,6 +173,7 @@ Future exportMultiAsset(ExportConfig config, String locale,
   if (assetFiles.isNotEmpty) {
     await exportAssets(
       config,
+      locale,
       await createAssetsFile(config, assets.map((e) => e.file)),
       path.join(config.assetStudioConfigDir, assetConfig),
       skipExists: skipExists,
@@ -269,6 +278,7 @@ Future<String> createAssetsFile(
 
 Future exportAssets(
   ExportConfig config,
+  String locale,
   String bundlePath,
   String settingPath, {
   String suffix,
@@ -277,7 +287,7 @@ Future exportAssets(
   var arguments = [
     'convert',
     bundlePath,
-    config.pathConfig.exportDir,
+    config.pathConfig.getExportDir(locale: locale),
     '-m',
     settingPath,
   ];
@@ -311,7 +321,7 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle asset,
 
   var assetDir = asset.name.split('/');
   var exportDir = Directory(path.joinAll([
-    config.pathConfig.exportDir,
+    config.pathConfig.getExportDir(),
     config.pathConfig.audio.exportDir,
     ...assetDir.sublist(0, assetDir.length - 1),
     path.basenameWithoutExtension(asset.name)

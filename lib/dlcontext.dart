@@ -1,5 +1,6 @@
 import 'dart:io' as io;
 import 'dart:io';
+
 import 'package:dl_datamine/config.dart';
 import 'package:path/path.dart' as path;
 
@@ -69,8 +70,8 @@ Future<ExportConfig> initWithArguments(List<String> arguments) async {
 }
 
 Future<File> _incrementalRecordFile(ExportConfig config, File f, bool autoCreateDirectory) async {
-  if (path.isWithin(config.pathConfig.exportDir, f.path)) {
-    var rel = path.relative(f.path, from: config.pathConfig.exportDir);
+  if (path.isWithin(config.pathConfig.getExportDir(), f.path)) {
+    var rel = path.relative(f.path, from: config.pathConfig.getExportDir());
     var incrFile = File(
       path.join(
         config.pathConfig.incrDir,

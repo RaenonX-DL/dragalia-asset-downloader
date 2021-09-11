@@ -26,32 +26,44 @@
   "single": [
     {
       "name": "master",
-      "config": "master.json"
+      "config": "master.json",
+      "multiLocale": true
     },
     {
       "name": "actions",
-      "config": "actions.json"
+      "config": "actions.json",
+      "multiLocale": true
     },
     {
       "name": "images/ingame/ui",
-      "config": "ui.json"
+      "config": "ui.json",
+      "multiLocale": true
     }
   ],
   "multi": [
     {
       "regExp": "images/icon/",
       "config": "icons.json",
-      "skipExists": true
+      "skipExists": true,
+      "multiLocale": true
     },
     {
       "regExp": "images/outgame/unitdetail/(amulet|chara|dragon)",
       "config": "unitdetail.json",
-      "skipExists": true
+      "skipExists": true,
+      "multiLocale": true
     },
     {
-      "regExp": "characters/motion/",
+      "regExp": "((characters|dragon)/motion/|meshes/dragon)",
       "config": "animation.json",
-      "skipExists": true
+      "skipExists": true,
+      "multiLocale": true
+    },
+    {
+      "regExp": "story/(unit|castle|quest)story/",
+      "config": "story.json",
+      "skipExists": true,
+      "multiLocale": true
     }
   ]
 }

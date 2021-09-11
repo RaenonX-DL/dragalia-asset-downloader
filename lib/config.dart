@@ -1,18 +1,21 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dl_datamine/dlcontext.dart';
 import 'package:dl_datamine/dlmanifest.dart';
 import 'package:path/path.dart' as path;
 
 class SingleConfig {
   final String name;
   final String config;
+  final bool multiLocale;
 
-  SingleConfig._(this.name, this.config);
+  SingleConfig._(this.name, this.config, this.multiLocale);
 
   static List<SingleConfig> parse(List<dynamic> configEntries) {
     return configEntries
-        .map((config) => SingleConfig._(config['name'], config['config']))
+        .map((config) => SingleConfig._(
+            config['name'], config['config'], config['multiLocale']))
         .toList();
   }
 }
@@ -21,13 +24,14 @@ class MultiConfig {
   final RegExp regExp;
   final String config;
   final bool skipExists;
+  final bool multiLocale;
 
-  MultiConfig._(this.regExp, this.config, this.skipExists);
+  MultiConfig._(this.regExp, this.config, this.skipExists, this.multiLocale);
 
   static List<MultiConfig> parse(List<dynamic> configEntries) {
     return configEntries
-        .map((config) => MultiConfig._(
-            RegExp(config['regExp']), config['config'], config['skipExists']))
+        .map((config) => MultiConfig._(RegExp(config['regExp']),
+            config['config'], config['skipExists'], config['multiLocale']))
         .toList();
   }
 }
@@ -129,12 +133,18 @@ class PathConfig {
   final AudioConfig audio;
   final IndexConfig index;
   final String cdnDir;
-  final String exportDir;
+  final String _exportDir;
   final String incrDir;
   final String tempDir;
 
   PathConfig._(this.decrypter, this.assetStudio, this.audio, this.index,
-      this.cdnDir, this.exportDir, this.incrDir, this.tempDir);
+      this.cdnDir, this._exportDir, this.incrDir, this.tempDir);
+
+  String getExportDir({String locale = manifestMasterLocale}) {
+    return locale == manifestMasterLocale
+        ? _exportDir
+        : '${_exportDir}/localized/${locale}';
+  }
 
   static Future<PathConfig> parse(Map<String, dynamic> configBody) async {
     var incrDir = path.joinAll(configBody['incrDir'].split('/'));
