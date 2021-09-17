@@ -29,26 +29,22 @@
             Immutable array of bytes.
             </summary>
         </member>
-        <member name="T:Google.Protobuf.ByteString.Unsafe">
+        <member name="M:Google.Protobuf.ByteString.AttachBytes(System.ReadOnlyMemory{System.Byte})">
             <summary>
-            Unsafe operations that can cause IO Failure and/or other catastrophic side-effects.
-            </summary>
-        </member>
-        <member name="M:Google.Protobuf.ByteString.Unsafe.FromBytes(System.Byte[])">
-            <summary>
-            Constructs a new ByteString from the given byte array. The array is
-            *not* copied, and must not be modified after this constructor is called.
+                Internal use only. Ensure that the provided memory is not mutated and belongs to this instance.
             </summary>
         </member>
         <member name="M:Google.Protobuf.ByteString.AttachBytes(System.Byte[])">
             <summary>
-            Internal use only.  Ensure that the provided array is not mutated and belongs to this instance.
+                Internal use only. Ensure that the provided memory is not mutated and belongs to this instance.
+                This method encapsulates converting array to memory. Reduces need for SecuritySafeCritical
+                in .NET Framework.
             </summary>
         </member>
-        <member name="M:Google.Protobuf.ByteString.#ctor(System.Byte[])">
+        <member name="M:Google.Protobuf.ByteString.#ctor(System.ReadOnlyMemory{System.Byte})">
             <summary>
-            Constructs a new ByteString from the given byte array. The array is
-            *not* copied, and must not be modified after this constructor is called.
+                Constructs a new ByteString from the given memory. The memory is
+                *not* copied, and must not be modified after this constructor is called.
             </summary>
         </member>
         <member name="P:Google.Protobuf.ByteString.Empty">
@@ -227,31 +223,32 @@
             <param name="other">The <see cref="T:Google.Protobuf.ByteString"/> to compare this with.</param>
             <returns><c>true</c> if <paramref name="other"/> refers to an equal byte string; <c>false</c> otherwise.</returns>
         </member>
-        <member name="M:Google.Protobuf.ByteString.WriteRawBytesTo(Google.Protobuf.CodedOutputStream)">
-            <summary>
-            Used internally by CodedOutputStream to avoid creating a copy for the write
-            </summary>
-        </member>
         <member name="M:Google.Protobuf.ByteString.CopyTo(System.Byte[],System.Int32)">
             <summary>
-            Copies the entire byte array to the destination array provided at the offset specified.
+                Copies the entire byte array to the destination array provided at the offset specified.
             </summary>
         </member>
         <member name="M:Google.Protobuf.ByteString.WriteTo(System.IO.Stream)">
             <summary>
-            Writes the entire byte array to the provided stream
+                Writes the entire byte array to the provided stream
+            </summary>
+        </member>
+        <member name="T:Google.Protobuf.ByteStringAsync">
+            <summary>
+                SecuritySafeCritical attribute can not be placed on types with async methods.
+                This class has ByteString's async methods so it can be marked with SecuritySafeCritical.
             </summary>
         </member>
         <member name="T:Google.Protobuf.CodedInputStream">
             <summary>
-            Reads and decodes protocol message fields.
+                Reads and decodes protocol message fields.
             </summary>
             <remarks>
-            <para>
-            This class is generally used by generated code to read appropriate
-            primitives from the stream. It effectively encapsulates the lowest
-            levels of protocol buffer format.
-            </para>
+                <para>
+                    This class is generally used by generated code to read appropriate
+                    primitives from the stream. It effectively encapsulates the lowest
+                    levels of protocol buffer format.
+                </para>
             <para>
             Repeated fields and map fields are not handled by this class; use <see cref="T:Google.Protobuf.Collections.RepeatedField`1"/>
             and <see cref="T:Google.Protobuf.Collections.MapField`2"/> to serialize such fields.
@@ -1338,30 +1335,31 @@
         </member>
         <member name="M:Google.Protobuf.Collections.MapField`2.Codec.#ctor(Google.Protobuf.FieldCodec{`0},Google.Protobuf.FieldCodec{`1},System.UInt32)">
             <summary>
-            Creates a new entry codec based on a separate key codec and value codec,
-            and the tag to use for each map entry.
+                Creates a new entry codec based on a separate key codec and value codec,
+                and the tag to use for each map entry.
             </summary>
             <param name="keyCodec">The key codec.</param>
             <param name="valueCodec">The value codec.</param>
             <param name="mapTag">The map tag to use to introduce each map entry.</param>
         </member>
-        <member name="P:Google.Protobuf.Collections.MapField`2.Codec.MapTag">
+        <member name="P:Google.Protobuf.Collections.MapField`2.Codec.KeyCodec">
             <summary>
-            The tag used in the enclosing message to indicate map entries.
+                The key codec.
             </summary>
         </member>
-        <member name="T:Google.Protobuf.Collections.MapField`2.Codec.MessageAdapter">
+        <member name="P:Google.Protobuf.Collections.MapField`2.Codec.ValueCodec">
             <summary>
-            A mutable message class, used for parsing and serializing. This
-            delegates the work to a codec, but implements the <see cref="T:Google.Protobuf.IMessage"/> interface
-            for interop with <see cref="T:Google.Protobuf.CodedInputStream"/> and <see cref="T:Google.Protobuf.CodedOutputStream"/>.
-            This is nested inside Codec as it's tightly coupled to the associated codec,
-            and it's simpler if it has direct access to all its fields.
+                The value codec.
+            </summary>
+        </member>
+        <member name="P:Google.Protobuf.Collections.MapField`2.Codec.MapTag">
+            <summary>
+                The tag used in the enclosing message to indicate map entries.
             </summary>
         </member>
         <member name="T:Google.Protobuf.Collections.ProtobufEqualityComparers">
             <summary>
-            Provides a central place to implement equality comparisons, primarily for bitwise float/double equality.
+                Provides a central place to implement equality comparisons, primarily for bitwise float/double equality.
             </summary>
         </member>
         <member name="M:Google.Protobuf.Collections.ProtobufEqualityComparers.GetEqualityComparer``1">
@@ -2266,20 +2264,27 @@
         </member>
         <member name="M:Google.Protobuf.FieldCodec`1.CalculateSizeWithTag(`0)">
             <summary>
-            Calculates the size required to write the given value, with a tag,
-            if the value is not the default.
+                Calculates the size required to write the given value, with a tag,
+                if the value is not the default.
+            </summary>
+        </member>
+        <member name="M:Google.Protobuf.FieldCodec`1.CalculateUnconditionalSizeWithTag(`0)">
+            <summary>
+                Calculates the size required to write the given value, with a tag, even
+                if the value is the default.
             </summary>
         </member>
         <member name="T:Google.Protobuf.FieldMaskTree">
-             <summary>
-             <para>A tree representation of a FieldMask. Each leaf node in this tree represent
-             a field path in the FieldMask.</para>
-            
-             <para>For example, FieldMask "foo.bar,foo.baz,bar.baz" as a tree will be:</para>
-             <code>
-               [root] -+- foo -+- bar
-                       |       |
-                       |       +- baz
+            <summary>
+                <para>A tree representation of a FieldMask. Each leaf node in this tree represent
+                    a field path in the FieldMask.
+                </para>
+
+                <para>For example, FieldMask "foo.bar,foo.baz,bar.baz" as a tree will be:</para>
+                <code>
+                    [root] -+- foo -+- bar
+                    | |
+                    | +- baz
                        |
                        +- bar --- baz
              </code>
@@ -3125,18 +3130,25 @@
         </member>
         <member name="M:Google.Protobuf.MessageExtensions.MergeFrom(Google.Protobuf.IMessage,System.IO.Stream)">
             <summary>
-            Merges data from the given stream into an existing message.
+                Merges data from the given stream into an existing message.
             </summary>
             <param name="message">The message to merge the data into.</param>
             <param name="input">Stream containing the data to merge, which must be protobuf-encoded binary data.</param>
         </member>
+        <member name="M:Google.Protobuf.MessageExtensions.MergeFrom(Google.Protobuf.IMessage,System.ReadOnlySpan{System.Byte})">
+            <summary>
+                Merges data from the given span into an existing message.
+            </summary>
+            <param name="message">The message to merge the data into.</param>
+            <param name="span">Span containing the data to merge, which must be protobuf-encoded binary data.</param>
+        </member>
         <member name="M:Google.Protobuf.MessageExtensions.MergeDelimitedFrom(Google.Protobuf.IMessage,System.IO.Stream)">
             <summary>
-            Merges length-delimited data from the given stream into an existing message.
+                Merges length-delimited data from the given stream into an existing message.
             </summary>
             <remarks>
-            The stream is expected to contain a length and then the data. Only the amount of data
-            specified by the length will be consumed.
+                The stream is expected to contain a length and then the data. Only the amount of data
+                specified by the length will be consumed.
             </remarks>
             <param name="message">The message to merge the data into.</param>
             <param name="input">Stream containing the data to merge, which must be protobuf-encoded binary data.</param>
@@ -3227,24 +3239,31 @@
         </member>
         <member name="M:Google.Protobuf.MessageParser.ParseFrom(System.IO.Stream)">
             <summary>
-            Parses a message from the given stream.
+                Parses a message from the given stream.
             </summary>
             <param name="input">The stream to parse.</param>
             <returns>The parsed message.</returns>
         </member>
         <member name="M:Google.Protobuf.MessageParser.ParseFrom(System.Buffers.ReadOnlySequence{System.Byte})">
             <summary>
-            Parses a message from the given sequence.
+                Parses a message from the given sequence.
+            </summary>
+            <param name="data">The data to parse.</param>
+            <returns>The parsed message.</returns>
+        </member>
+        <member name="M:Google.Protobuf.MessageParser.ParseFrom(System.ReadOnlySpan{System.Byte})">
+            <summary>
+                Parses a message from the given span.
             </summary>
             <param name="data">The data to parse.</param>
             <returns>The parsed message.</returns>
         </member>
         <member name="M:Google.Protobuf.MessageParser.ParseDelimitedFrom(System.IO.Stream)">
             <summary>
-            Parses a length-delimited message from the given stream.
+                Parses a length-delimited message from the given stream.
             </summary>
             <remarks>
-            The stream is expected to contain a length and then the data. Only the amount of data
+                The stream is expected to contain a length and then the data. Only the amount of data
             specified by the length will be consumed.
             </remarks>
             <param name="input">The stream to parse.</param>
@@ -3339,24 +3358,31 @@
         </member>
         <member name="M:Google.Protobuf.MessageParser`1.ParseFrom(System.IO.Stream)">
             <summary>
-            Parses a message from the given stream.
+                Parses a message from the given stream.
             </summary>
             <param name="input">The stream to parse.</param>
             <returns>The parsed message.</returns>
         </member>
         <member name="M:Google.Protobuf.MessageParser`1.ParseFrom(System.Buffers.ReadOnlySequence{System.Byte})">
             <summary>
-            Parses a message from the given sequence.
+                Parses a message from the given sequence.
+            </summary>
+            <param name="data">The data to parse.</param>
+            <returns>The parsed message.</returns>
+        </member>
+        <member name="M:Google.Protobuf.MessageParser`1.ParseFrom(System.ReadOnlySpan{System.Byte})">
+            <summary>
+                Parses a message from the given span.
             </summary>
             <param name="data">The data to parse.</param>
             <returns>The parsed message.</returns>
         </member>
         <member name="M:Google.Protobuf.MessageParser`1.ParseDelimitedFrom(System.IO.Stream)">
             <summary>
-            Parses a length-delimited message from the given stream.
+                Parses a length-delimited message from the given stream.
             </summary>
             <remarks>
-            The stream is expected to contain a length and then the data. Only the amount of data
+                The stream is expected to contain a length and then the data. Only the amount of data
             specified by the length will be consumed.
             </remarks>
             <param name="input">The stream to parse.</param>
@@ -3400,22 +3426,38 @@
         </member>
         <member name="T:Google.Protobuf.ParseContext">
             <summary>
-            An opaque struct that represents the current parsing state and is passed along
-            as the parsing proceeds.
-            All the public methods are intended to be invoked only by the generated code,
-            users should never invoke them directly.
+                An opaque struct that represents the current parsing state and is passed along
+                as the parsing proceeds.
+                All the public methods are intended to be invoked only by the generated code,
+                users should never invoke them directly.
+            </summary>
+        </member>
+        <member name="M:Google.Protobuf.ParseContext.Initialize(System.ReadOnlySpan{System.Byte},Google.Protobuf.ParseContext@)">
+            <summary>
+                Initialize a<see cref="T:Google.Protobuf.ParseContext"/>, building all
+                <see cref="T:Google.Protobuf.ParserInternalState"/>
+                from defaults and
+                the given<paramref name="buffer"/>.
+            </summary>
+        </member>
+        <member name="M:Google.Protobuf.ParseContext.Initialize(System.ReadOnlySpan{System.Byte},Google.Protobuf.ParserInternalState@,Google.Protobuf.ParseContext@)">
+            <summary>
+                Initialize a
+                <see cref="T:Google.Protobuf.ParseContext"/>
+                using existing<see cref="T:Google.Protobuf.ParserInternalState"/>, e.g. from<see
+                    cref="T:Google.Protobuf.CodedInputStream"/>.
             </summary>
         </member>
         <member name="M:Google.Protobuf.ParseContext.Initialize(Google.Protobuf.CodedInputStream,Google.Protobuf.ParseContext@)">
             <summary>
-            Creates a ParseContext instance from CodedInputStream.
-            WARNING: internally this copies the CodedInputStream's state, so after done with the ParseContext,
-            the CodedInputStream's state needs to be updated.
+                Creates a ParseContext instance from CodedInputStream.
+                WARNING: internally this copies the CodedInputStream's state, so after done with the ParseContext,
+                the CodedInputStream's state needs to be updated.
             </summary>
         </member>
         <member name="P:Google.Protobuf.ParseContext.LastTag">
             <summary>
-            Returns the last tag read, or 0 if no tags have been read or we've read beyond
+                Returns the last tag read, or 0 if no tags have been read or we've read beyond
             the end of the input.
             </summary>
         </member>
@@ -4660,11 +4702,11 @@
         </member>
         <member name="P:Google.Protobuf.Reflection.FileOptions.JavaOuterClassname">
             <summary>
-            If set, all the classes from the .proto file are wrapped in a single
-            outer class with the given name.  This applies to both Proto1
-            (equivalent to the old "--one_java_file" option) and Proto2 (where
-            a .proto always translates to a single class, but you may want to
-            explicitly choose the class name).
+                Controls the name of the wrapper Java class generated for the .proto file.
+                That class will always contain the .proto file's getDescriptor() method as
+                well as any top-level extensions defined in the .proto file.
+                If java_multiple_files is disabled, then all the other classes from the
+                .proto file will be nested inside the single wrapper outer class.
             </summary>
         </member>
         <member name="P:Google.Protobuf.Reflection.FileOptions.HasJavaOuterClassname">
@@ -4678,12 +4720,12 @@
         </member>
         <member name="P:Google.Protobuf.Reflection.FileOptions.JavaMultipleFiles">
             <summary>
-            If set true, then the Java code generator will generate a separate .java
-            file for each top-level message, enum, and service defined in the .proto
-            file.  Thus, these types will *not* be nested inside the outer class
-            named by java_outer_classname.  However, the outer class will still be
-            generated to contain the file's getDescriptor() method as well as any
-            top-level extensions defined in the file.
+                If enabled, then the Java code generator will generate a separate .java
+                file for each top-level message, enum, and service defined in the .proto
+                file. Thus, these types will *not* be nested inside the wrapper class
+                named by java_outer_classname. However, the wrapper class will still be
+                generated to contain the file's getDescriptor() method as well as any
+                top-level extensions defined in the file.
             </summary>
         </member>
         <member name="P:Google.Protobuf.Reflection.FileOptions.HasJavaMultipleFiles">
@@ -6475,24 +6517,41 @@
         </member>
         <member name="M:Google.Protobuf.Reflection.FileDescriptor.FromGeneratedCode(System.Byte[],Google.Protobuf.Reflection.FileDescriptor[],Google.Protobuf.Reflection.GeneratedClrTypeInfo)">
             <summary>
-            Creates a descriptor for generated code.
+                Creates a descriptor for generated code.
             </summary>
             <remarks>
-            This method is only designed to be used by the results of generating code with protoc,
-            which creates the appropriate dependencies etc. It has to be public because the generated
-            code is "external", but should not be called directly by end users.
+                This method is only designed to be used by the results of generating code with protoc,
+                which creates the appropriate dependencies etc. It has to be public because the generated
+                code is "external", but should not be called directly by end users.
             </remarks>
+        </member>
+        <member name="M:Google.Protobuf.Reflection.FileDescriptor.BuildFromByteStrings(System.Collections.Generic.IEnumerable{Google.Protobuf.ByteString},Google.Protobuf.ExtensionRegistry)">
+            <summary>
+                Converts the given descriptor binary data into FileDescriptor objects.
+                Note: reflection using the returned FileDescriptors is not currently supported.
+            </summary>
+            <param name="descriptorData">The binary file descriptor proto data. Must not be null, and any
+                dependencies must come before the descriptor which depends on them. (If A depends on B, and B
+                depends on C, then the descriptors must be presented in the order C, B, A.) This is compatible
+                with the order in which protoc provides descriptors to plugins.
+            </param>
+            <param name="registry">The extension registry to use when parsing, or null if no extensions are required.
+            </param>
+            <returns>The file descriptors corresponding to<paramref name="descriptorData"/>.
+            </returns>
         </member>
         <member name="M:Google.Protobuf.Reflection.FileDescriptor.BuildFromByteStrings(System.Collections.Generic.IEnumerable{Google.Protobuf.ByteString})">
             <summary>
-            Converts the given descriptor binary data into FileDescriptor objects.
-            Note: reflection using the returned FileDescriptors is not currently supported.
+                Converts the given descriptor binary data into FileDescriptor objects.
+                Note: reflection using the returned FileDescriptors is not currently supported.
             </summary>
             <param name="descriptorData">The binary file descriptor proto data. Must not be null, and any
-            dependencies must come before the descriptor which depends on them. (If A depends on B, and B
-            depends on C, then the descriptors must be presented in the order C, B, A.) This is compatible
-            with the order in which protoc provides descriptors to plugins.</param>
-            <returns>The file descriptors corresponding to <paramref name="descriptorData"/>.</returns>
+                dependencies must come before the descriptor which depends on them. (If A depends on B, and B
+                depends on C, then the descriptors must be presented in the order C, B, A.) This is compatible
+                with the order in which protoc provides descriptors to plugins.
+            </param>
+            <returns>The file descriptors corresponding to<paramref name="descriptorData"/>.
+            </returns>
         </member>
         <member name="M:Google.Protobuf.Reflection.FileDescriptor.ToString">
             <summary>
@@ -7493,13 +7552,64 @@
         </member>
         <member name="M:Google.Protobuf.UnknownFieldSet.MergeField(System.Int32,Google.Protobuf.UnknownField)">
             <summary>
-            Adds a field to the unknown field set. If a field with the same
-            number already exists, the two are merged.
+                Adds a field to the unknown field set. If a field with the same
+                number already exists, the two are merged.
             </summary>
         </member>
         <member name="M:Google.Protobuf.UnknownFieldSet.Clone(Google.Protobuf.UnknownFieldSet)">
             <summary>
-            Clone an unknown field set from <paramref name="other"/>.
+                Clone an unknown field set from<paramref name="other"/>.
+            </summary>
+        </member>
+        <member name="T:Google.Protobuf.UnsafeByteOperations">
+            <summary>
+                Provides a number of unsafe byte operations to be used by advanced applications with high performance
+                requirements. These methods are referred to as "unsafe" due to the fact that they potentially expose
+                the backing buffer of a
+                <see cref="T:Google.Protobuf.ByteString"/>
+                to the application.
+            </summary>
+            <remarks>
+                <para>
+                    The methods in this class should only be called if it is guaranteed that the buffer backing the
+                    <see cref="T:Google.Protobuf.ByteString"/>
+                    will never change! Mutation of a
+                    <see cref="T:Google.Protobuf.ByteString"/>
+                    can lead to unexpected
+                    and undesirable consequences in your application, and will likely be difficult to debug. Proceed
+                    with caution!
+                </para>
+                <para>
+                    This can have a number of significant side affects that have spooky-action-at-a-distance-like
+                    behavior. In
+                    particular, if the bytes value changes out from under a Protocol Buffer:
+                </para>
+                <list type="bullet">
+                    <item>
+                        <description>serialization may throw</description>
+                    </item>
+                    <item>
+                        <description>serialization may succeed but the wrong bytes may be written out</description>
+                    </item>
+                    <item>
+                        <description>objects that are normally immutable (such as ByteString) are no longer immutable
+                        </description>
+                    </item>
+                    <item>
+                        <description>hashCode may be incorrect</description>
+                    </item>
+                </list>
+            </remarks>
+        </member>
+        <member name="M:Google.Protobuf.UnsafeByteOperations.UnsafeWrap(System.ReadOnlyMemory{System.Byte})">
+            <summary>
+                Constructs a new
+                <see cref="T:Google.Protobuf.ByteString"/>
+                from the given bytes. The bytes are not copied,
+                and must not be modified while the
+                <see cref="T:Google.Protobuf.ByteString"/>
+                is in use.
+                This API is experimental and subject to change.
             </summary>
         </member>
         <member name="T:Google.Protobuf.WellKnownTypes.AnyReflection">
@@ -7509,9 +7619,9 @@
             <summary>File descriptor for google/protobuf/any.proto</summary>
         </member>
         <member name="T:Google.Protobuf.WellKnownTypes.Any">
-             <summary>
-             `Any` contains an arbitrary serialized protocol buffer message along with a
-             URL that describes the type of the serialized message.
+            <summary>
+                `Any` contains an arbitrary serialized protocol buffer message along with a
+                URL that describes the type of the serialized message.
             
              Protobuf library provides support to pack/unpack Any values in the form
              of utility functions or additional generated methods of the Any type.
@@ -9884,19 +9994,26 @@
         </member>
         <member name="M:Google.Protobuf.WritingPrimitives.WriteBool(System.Span{System.Byte}@,Google.Protobuf.WriterInternalState@,System.Boolean)">
             <summary>
-            Writes a bool field value, without a tag, to the stream.
+                Writes a bool field value, without a tag, to the stream.
             </summary>
         </member>
         <member name="M:Google.Protobuf.WritingPrimitives.WriteString(System.Span{System.Byte}@,Google.Protobuf.WriterInternalState@,System.String)">
             <summary>
-            Writes a string field value, without a tag, to the stream.
-            The data is length-prefixed.
+                Writes a string field value, without a tag, to the stream.
+                The data is length-prefixed.
+            </summary>
+        </member>
+        <member name="M:Google.Protobuf.WritingPrimitives.NarrowFourUtf16CharsToAsciiAndWriteToBuffer(System.Byte@,System.UInt64)">
+            <summary>
+                Given a QWORD which represents a buffer of 4 ASCII chars in machine-endian order,
+                narrows each WORD to a BYTE, then writes the 4-byte result to the output buffer
+                also in machine-endian order.
             </summary>
         </member>
         <member name="M:Google.Protobuf.WritingPrimitives.WriteBytes(System.Span{System.Byte}@,Google.Protobuf.WriterInternalState@,Google.Protobuf.ByteString)">
             <summary>
-            Write a byte string, without a tag, to the stream.
-            The data is length-prefixed.
+                Write a byte string, without a tag, to the stream.
+                The data is length-prefixed.
             </summary>
         </member>
         <member name="M:Google.Protobuf.WritingPrimitives.WriteUInt32(System.Span{System.Byte}@,Google.Protobuf.WriterInternalState@,System.UInt32)">
