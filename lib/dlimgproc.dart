@@ -35,7 +35,7 @@ Future composeAlpha(ExportConfig config) async {
   var dumpStartTime = DateTime.now();
 
   await Future.wait(fileChunks.map((fileChunk) async => {
-        for (var file in fileChunk) {await compose_rgb_alpha(config, file)}
+        for (var file in fileChunk) {await composeRgbAlpha(config, file)}
       }));
 
   var duration = DateTime.now().difference(dumpStartTime).abs();
@@ -43,7 +43,7 @@ Future composeAlpha(ExportConfig config) async {
   print('::endgroup::');
 }
 
-Future compose_rgb_alpha(ExportConfig config, File file) async {
+Future composeRgbAlpha(ExportConfig config, File file) async {
   var ext = path.extension(file.path);
   if (ext.toLowerCase() != '.png') {
     return;
