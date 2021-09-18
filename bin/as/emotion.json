@@ -1,0 +1,25 @@
+{
+  "Exports": [
+    {
+      "Types": [
+        "MonoBehaviour"
+      ],
+      "Containers": [
+        "/resources/emotion/story"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async"
+    },
+    {
+      "Types": [
+        "Texture2D"
+      ],
+      "Containers": [
+        "/resources/emotion/story"
+      ],
+      "ExportType": "Convert",
+      "ProcessType": "Async",
+      "Name": "(.*)base(.*)"
+    }
+  ]
+}

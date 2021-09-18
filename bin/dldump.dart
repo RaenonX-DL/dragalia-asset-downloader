@@ -1,8 +1,8 @@
 import 'dart:core';
 
 import 'package:dl_datamine/dlcdn.dart' as cdn;
-import 'package:dl_datamine/dlexport.dart' as exporter;
 import 'package:dl_datamine/dlcontext.dart' as context;
+import 'package:dl_datamine/dlexport.dart' as exporter;
 import 'package:dl_datamine/dlimgproc.dart' as imgproc;
 
 extension DurationExtension on Duration {
@@ -34,7 +34,7 @@ void main(List<String> arguments) async {
   await cdn.initialize(config);
   await cdn.downloadAllManifest();
   await exporter.exportAllAssets(config);
-  await imgproc.composeAlpha(config);
+  await imgproc.composeImage(config);
 
   var dumpDuration = DateTime.now().difference(dumpStartTime).abs();
   print('${DateTime.now().toIso8601String()}: '
