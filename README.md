@@ -1,5 +1,7 @@
 # dragalia-data-downloader
 
+**Deprecated.** This is replaced by [dragalia-asset-downloader-2].
+
 Dart CLI tool for downloading and pre-processing Dragalia Lost game assets.
 
 ### Prerequisites
@@ -43,8 +45,8 @@ Errors occur if the directory structure does not look like this.
 
 Note that there are some additional files, including `AssetStudioCLI.exe` and its dependencies in the `AssetStudio`.
 
-Therefore, it is required to use the AssetStudio files directly provided by this repository,
-instead of the one from [the original repository](https://github.com/Perfare/AssetStudio).
+Therefore, it is required to use the AssetStudio files directly provided by this repository, instead of the one
+from [the original repository](https://github.com/Perfare/AssetStudio).
 
 ### Usage
 
@@ -53,3 +55,5 @@ Enter this in the terminal to check the usage:
 ```commandline
 dldump
 ```
+
+[dragalia-asset-downloader-2]: https://github.com/RaenonX-DL/dragalia-asset-downloader-2
