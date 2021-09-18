@@ -25,19 +25,13 @@ class MultiConfig {
   final String config;
   final bool skipExists;
   final bool multiLocale;
-  final String? partsImageRegex;
 
-  MultiConfig._(this.regExp, this.config, this.skipExists, this.multiLocale,
-      this.partsImageRegex);
+  MultiConfig._(this.regExp, this.config, this.skipExists, this.multiLocale);
 
   static List<MultiConfig> parse(List<dynamic> configEntries) {
     return configEntries
-        .map((config) => MultiConfig._(
-            RegExp(config['regExp']),
-            config['config'],
-            config['skipExists'],
-            config['multiLocale'],
-            config['partsImageRegex']))
+        .map((config) => MultiConfig._(RegExp(config['regExp']),
+            config['config'], config['skipExists'], config['multiLocale']))
         .toList();
   }
 }

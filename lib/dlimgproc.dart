@@ -1,33 +1,31 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:dl_datamine/config.dart';
-import 'package:dl_datamine/dlcontext.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as path;
 
+import 'config.dart';
+import 'dlcontext.dart';
+import 'dlimgparts.dart';
+import 'utils.dart';
+
 Future composeImage(ExportConfig config) async {
-  var srcDir = Directory(config.pathConfig.getExportDir());
-  if (!await srcDir.exists()) {
-    await srcDir.create(recursive: true);
-  }
+  var files = await getExportedFiles(config);
 
-  var files = await srcDir.list(recursive: true).toSet();
-
-  await _performImageTask(
+  await performImageTask(
       config,
       files,
       (fileName) => !fileName.endsWith('_alphaA8') && !fileName.endsWith('_Y'),
       _composeRgbAlphaSingle,
       'Merge Alpha',
       useAsync: true);
-  // Async causes some problem during merger
-  await _performImageTask(config, files, (fileName) => fileName.endsWith('_Y'),
+  await performImageTask(config, files, (fileName) => fileName.endsWith('_Y'),
       _composeYCbCrSingle, 'Merge YCbCr',
-      useAsync: true);
+      useAsync: false);
+  await cropPartsImage(config, files);
 }
 
-Future _performImageTask(
+Future performImageTask(
   ExportConfig config,
   Set<FileSystemEntity> files,
   Function(String) isFileNameToUse,
@@ -52,7 +50,7 @@ Future _performImageTask(
     fileChunks[i % fileChunkCount].add(filesToProcess[i]);
   }
 
-  print('::group::Compose image - $taskName');
+  print('::group::Process image - $taskName');
   var dumpStartTime = DateTime.now();
 
   await Future.wait(fileChunks.map((fileChunk) async => {
@@ -85,9 +83,9 @@ Future _composeRgbAlphaSingle(ExportConfig config, File file) async {
     var rgb = img.decodePng(await file.readAsBytes());
 
     if (a == null) {
-      throw ArgumentError('Alpha channel file is not loadable');
+      throw ArgumentError('Alpha channel file not loadable');
     } else if (rgb == null) {
-      throw ArgumentError('RGB file is not loadable');
+      throw ArgumentError('RGB file not loadable');
     }
 
     if (a.length != rgb.length) {
@@ -128,11 +126,11 @@ Future _composeYCbCrSingle(ExportConfig config, File file) async {
     var crImage = img.decodePng(await crFile.readAsBytes());
 
     if (yImage == null) {
-      throw ArgumentError('Y file is not loadable');
+      throw ArgumentError('Y file not loadable');
     } else if (cbImage == null) {
-      throw ArgumentError('Cb file is not loadable');
+      throw ArgumentError('Cb file not loadable');
     } else if (crImage == null) {
-      throw ArgumentError('Cr file is not loadable');
+      throw ArgumentError('Cr file not loadable');
     }
 
     if (cbImage.length != yImage.length) {
