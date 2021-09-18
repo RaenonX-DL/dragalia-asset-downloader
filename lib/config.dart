@@ -25,13 +25,19 @@ class MultiConfig {
   final String config;
   final bool skipExists;
   final bool multiLocale;
+  final String? partsImageRegex;
 
-  MultiConfig._(this.regExp, this.config, this.skipExists, this.multiLocale);
+  MultiConfig._(this.regExp, this.config, this.skipExists, this.multiLocale,
+      this.partsImageRegex);
 
   static List<MultiConfig> parse(List<dynamic> configEntries) {
     return configEntries
-        .map((config) => MultiConfig._(RegExp(config['regExp']),
-            config['config'], config['skipExists'], config['multiLocale']))
+        .map((config) => MultiConfig._(
+            RegExp(config['regExp']),
+            config['config'],
+            config['skipExists'],
+            config['multiLocale'],
+            config['partsImageRegex']))
         .toList();
   }
 }
@@ -90,7 +96,7 @@ class IndexConfig {
 
   static Future<IndexConfig> parse(
       String incrDir, Map<String, dynamic> configBody) async {
-    var indexFile = await File(path.join(incrDir, configBody['indexPath']));
+    var indexFile = File(path.join(incrDir, configBody['indexPath']));
     // Create initial index file if not exists
     if (!await indexFile.parent.exists()) {
       await indexFile.parent.create(recursive: true);
@@ -143,7 +149,7 @@ class PathConfig {
   String getExportDir({String locale = manifestMasterLocale}) {
     return locale == manifestMasterLocale
         ? _exportDir
-        : '${_exportDir}/localized/${locale}';
+        : '$_exportDir/localized/$locale';
   }
 
   static Future<PathConfig> parse(Map<String, dynamic> configBody) async {
@@ -166,11 +172,15 @@ class ExportConfig {
   final List<SingleConfig> single;
   final List<MultiConfig> multi;
   final PathConfig pathConfig;
+  final String manifestKey;
+  final String manifestIV;
 
-  ExportConfig._(this.root, this.single, this.multi, this.pathConfig);
+  ExportConfig._(this.root, this.single, this.multi, this.pathConfig,
+      this.manifestKey, this.manifestIV);
 
   /// Public factory
-  static Future<ExportConfig> create(String root, String configPath) async {
+  static Future<ExportConfig> create(String root, String configPath,
+      String manifestKey, String manifestIV) async {
     var configBody = jsonDecode(await File(configPath).readAsString());
 
     var single = SingleConfig.parse(configBody['single']);
@@ -178,7 +188,7 @@ class ExportConfig {
 
     var path = await PathConfig.parse(configBody['paths']);
 
-    return ExportConfig._(root, single, multi, path);
+    return ExportConfig._(root, single, multi, path, manifestKey, manifestIV);
   }
 
   String get decryptDLLPath {

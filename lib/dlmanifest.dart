@@ -6,7 +6,7 @@ class ManifestAssetBundle {
   String name;
   String hash;
   int size;
-  File file;
+  File? file;
 
   ManifestAssetBundle(this.name, this.hash, this.size, this.file);
 
@@ -43,28 +43,32 @@ class Manifest {
     return Manifest._(unityAssets, rawAssets);
   }
 
-  Future<ManifestAssetBundle> pullUnityAsset(String name) {
+  Future<ManifestAssetBundle> pullUnityAsset(cdn.CdnInfo cdnInfo, String name) {
     var asset = unityAssets[name];
     if (asset == null) {
       return Future.error(Exception('asset $name is not found in manifest'));
     }
-    return cdn.pullAsset(asset);
+    return cdn.pullAsset(cdnInfo, asset);
   }
 
-  Iterable<Future<List<ManifestAssetBundle>>> pullUnityAssets(RegExp expr,
-      {bool Function(ManifestAssetBundle) filter}) {
-    return pullAssets(selectAssetsRegExp(unityAssets, expr, filter: filter));
+  Iterable<Future<List<ManifestAssetBundle>>> pullUnityAssets(
+      cdn.CdnInfo cdnInfo, RegExp expr,
+      {bool Function(ManifestAssetBundle)? filter}) {
+    return pullAssets(
+        cdnInfo, selectAssetsRegExp(unityAssets, expr, filter: filter));
   }
 
-  Iterable<Future<List<ManifestAssetBundle>>> pullRawAssets(RegExp expr,
-      {bool Function(ManifestAssetBundle) filter}) {
-    return pullAssets(selectAssetsRegExp(rawAssets, expr, filter: filter),
+  Iterable<Future<List<ManifestAssetBundle>>> pullRawAssets(
+      cdn.CdnInfo cdnInfo, RegExp expr,
+      {bool Function(ManifestAssetBundle)? filter}) {
+    return pullAssets(
+        cdnInfo, selectAssetsRegExp(rawAssets, expr, filter: filter),
         useName: true);
   }
 
   Iterable<ManifestAssetBundle> selectAssetsRegExp(
       Map<String, ManifestAssetBundle> assets, RegExp expr,
-      {bool Function(ManifestAssetBundle) filter}) {
+      {bool Function(ManifestAssetBundle)? filter}) {
     var assetsIter =
         assets.entries.where((e) => expr.hasMatch(e.key)).map((e) => e.value);
 
@@ -76,8 +80,8 @@ class Manifest {
   }
 
   Iterable<Future<List<ManifestAssetBundle>>> pullAssets(
-      Iterable<ManifestAssetBundle> assets,
-      {bool useName}) {
+      cdn.CdnInfo cdnInfo, Iterable<ManifestAssetBundle> assets,
+      {bool? useName}) {
     var assetChunkSize = 50;
     var assetChunks = <List<ManifestAssetBundle>>[];
 
@@ -85,7 +89,7 @@ class Manifest {
       assetChunks.add(assets.skip(start).take(assetChunkSize).toList());
     }
 
-    return assetChunks.map((assetChunk) => Future.wait(
-        assetChunk.map((asset) => cdn.pullAsset(asset, useName: useName))));
+    return assetChunks.map((assetChunk) => Future.wait(assetChunk
+        .map((asset) => cdn.pullAsset(cdnInfo, asset, useName: useName))));
   }
 }

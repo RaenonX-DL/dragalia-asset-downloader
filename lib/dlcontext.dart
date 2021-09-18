@@ -9,10 +9,8 @@ const bool kReleaseMode =
 
 const dotnetBin = 'dotnet';
 const decryptedExtension = '.decrypted';
-const cdnBaseUrl = 'https://dragalialost.akamaized.net/dl';
+Uri cdnBaseUrl = Uri.https('dragalialost.akamaized.net', '/dl');
 
-var manifestIV = '';
-var manifestKey = '';
 var versionCode = 'ziG2a3wZmqghCYnc';
 
 const manifestMasterLocale = 'jp';
@@ -26,7 +24,7 @@ const manifestLocaleFiles = {
 var contextRoot =
     kReleaseMode ? path.dirname(io.Platform.resolvedExecutable) : '.';
 
-String getArgumentsOptionValue(List<String> arguments, String flag) {
+String? getArgumentsOptionValue(List<String> arguments, String flag) {
   var i = arguments.indexOf(flag);
   if (i >= 0 && i + 1 < arguments.length) {
     return arguments[i + 1];
@@ -43,13 +41,13 @@ Future<ExportConfig> initWithArguments(List<String> arguments) async {
     io.exit(1);
   }
 
-  manifestIV = getArgumentsOptionValue(arguments, '--iv');
+  var manifestIV = getArgumentsOptionValue(arguments, '--iv');
   if (manifestIV == null) {
     print('IV is required for decrypting the manifest');
     io.exit(1);
   }
 
-  manifestKey = getArgumentsOptionValue(arguments, '--key');
+  var manifestKey = getArgumentsOptionValue(arguments, '--key');
   if (manifestKey == null) {
     print('Key is required for decrypting the manifest');
     io.exit(1);
@@ -58,18 +56,22 @@ Future<ExportConfig> initWithArguments(List<String> arguments) async {
   versionCode = arguments[0];
 
   var configPath = getArgumentsOptionValue(arguments, '--config-path');
-  if (configPath != null) {
-    configPath = path.normalize(configPath);
-    if (!await File(configPath).exists()) {
-      print('config file not exists');
-      io.exit(1);
-    }
+  if (configPath == null) {
+    print('Config path not specified');
+    io.exit(1);
+  }
+  configPath = path.normalize(configPath);
+  if (!await File(configPath).exists()) {
+    print('config file not exists');
+    io.exit(1);
   }
 
-  return await ExportConfig.create(contextRoot, configPath);
+  return await ExportConfig.create(
+      contextRoot, configPath, manifestIV, manifestKey);
 }
 
-Future<File> _incrementalRecordFile(ExportConfig config, File f, bool autoCreateDirectory) async {
+Future<File?> _incrementalRecordFile(
+    ExportConfig config, File f, bool autoCreateDirectory) async {
   if (path.isWithin(config.pathConfig.getExportDir(), f.path)) {
     var rel = path.relative(f.path, from: config.pathConfig.getExportDir());
     var incrFile = File(

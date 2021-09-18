@@ -2,17 +2,17 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dl_datamine/config.dart';
-import 'package:dl_datamine/dlcdn.dart' as cdn;
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 
 import 'dlaudio.dart';
+import 'dlcdn.dart';
 import 'dlcontext.dart';
 import 'dlmanifest.dart';
 
-Future exportAllAssets(ExportConfig config) async {
+Future exportAllAssets(CdnInfo cdnInfo, ExportConfig config) async {
   // Create temporary directory
-  var tempDir = await Directory(config.pathConfig.tempDir);
+  var tempDir = Directory(config.pathConfig.tempDir);
   if (await tempDir.exists()) {
     await tempDir.delete(recursive: true);
   }
@@ -21,19 +21,20 @@ Future exportAllAssets(ExportConfig config) async {
   // Export all assets
   for (var locale in manifestLocaleFiles.keys) {
     // Export a manifest and store it in the temporary directory
-    await exportLocalizedManifest(config, locale);
+    await exportLocalizedManifest(cdnInfo, config, locale);
     // Load the exported manifest
     var manifest = await loadLocalizedManifest(config, locale);
     // Try export all listed assets in the manifest
-    await exportAssetsWithManifest(config, locale, manifest);
+    await exportAssetsWithManifest(cdnInfo, config, locale, manifest);
   }
 
   // Delete temporary directory
   await tempDir.delete(recursive: true);
 }
 
-Future exportLocalizedManifest(ExportConfig config, String locale) async {
-  var encrypted = cdn.manifestAssetPath(locale);
+Future exportLocalizedManifest(
+    CdnInfo cdnInfo, ExportConfig config, String locale) async {
+  var encrypted = cdnInfo.manifestAssetPath(locale);
   var decrypted = '$encrypted$decryptedExtension';
 
   // Decrypt manifest
@@ -43,8 +44,8 @@ Future exportLocalizedManifest(ExportConfig config, String locale) async {
       config.decryptDLLPath,
       encrypted,
       decrypted,
-      manifestKey,
-      manifestIV,
+      config.manifestKey,
+      config.manifestIV,
     ],
     runInShell: true,
   );
@@ -58,54 +59,51 @@ Future exportLocalizedManifest(ExportConfig config, String locale) async {
   }
 
   // Export manifest file
-  await exportAssets(
-    config,
-    locale,
-    decrypted,
-    path.join(config.assetStudioConfigDir, 'manifest.json'));
+  await exportAssets(config, locale, decrypted,
+      path.join(config.assetStudioConfigDir, 'manifest.json'));
 }
 
 Future<Manifest> loadLocalizedManifest(
     ExportConfig config, String locale) async {
-  var manifestFile = File(cdn.manifestJsonPath(
-      config.pathConfig.getExportDir(locale: locale), locale));
+  var manifestFile = File(
+      manifestJsonPath(config.pathConfig.getExportDir(locale: locale), locale));
 
   return Manifest.fromJson(jsonDecode(await manifestFile.readAsString()));
 }
 
-Future exportAssetsWithManifest(
-    ExportConfig config, String locale, Manifest manifest) async {
+Future exportAssetsWithManifest(CdnInfo cdnInfo, ExportConfig config,
+    String locale, Manifest manifest) async {
   var isMasterLocale = locale == manifestMasterLocale;
 
   // Export assets
   for (var entry in config.single) {
     if (entry.multiLocale || isMasterLocale) {
-      await exportSingleAsset(config, locale, entry, manifest);
+      await exportSingleAsset(cdnInfo, config, locale, entry, manifest);
     }
   }
 
   for (var entry in config.multi) {
     if (entry.multiLocale || isMasterLocale) {
-      await exportMultiAsset(config, locale, entry, manifest);
+      await exportMultiAsset(cdnInfo, config, locale, entry, manifest);
     }
   }
 
-  await exportMasterAsset(config, locale, manifest);
+  await exportMasterAsset(cdnInfo, config, locale, manifest);
 
-  await exportAudioAsset(config, locale, manifest);
+  await exportAudioAsset(cdnInfo, config, locale, manifest);
 }
 
-Future exportMasterAsset(
-    ExportConfig config, String locale, Manifest manifest) async {
-  var masterAsset = await manifest.pullUnityAsset('master');
+Future exportMasterAsset(CdnInfo cdnInfo, ExportConfig config, String locale,
+    Manifest manifest) async {
+  var masterAsset = await manifest.pullUnityAsset(cdnInfo, 'master');
 
-  print('::group::Export master (${locale})');
+  print('::group::Export master ($locale)');
 
   if (!config.pathConfig.index.isIndexHashMatch(locale, masterAsset)) {
     await exportAssets(
       config,
       locale,
-      masterAsset.file.path,
+      masterAsset.file!.path,
       path.join(config.assetStudioConfigDir, 'localized.json'),
       suffix: '@$locale',
     );
@@ -116,14 +114,14 @@ Future exportMasterAsset(
   print('::endgroup::');
 }
 
-Future exportSingleAsset(ExportConfig config, String locale,
+Future exportSingleAsset(CdnInfo cdnInfo, ExportConfig config, String locale,
     SingleConfig configEntry, Manifest manifest) async {
   var assetName = configEntry.name;
   var assetConfig = configEntry.config;
 
-  print('::group::Export $assetName (single / ${locale})');
+  print('::group::Export $assetName (single / $locale)');
 
-  var singleAsset = await manifest.pullUnityAsset(assetName);
+  var singleAsset = await manifest.pullUnityAsset(cdnInfo, assetName);
 
   print('Assets pulled.');
 
@@ -131,7 +129,7 @@ Future exportSingleAsset(ExportConfig config, String locale,
     await exportAssets(
       config,
       locale,
-      singleAsset.file.path,
+      singleAsset.file!.path,
       path.join(config.assetStudioConfigDir, assetConfig),
     );
     config.pathConfig.index.updateIndex(locale, singleAsset);
@@ -143,17 +141,17 @@ Future exportSingleAsset(ExportConfig config, String locale,
   print('::endgroup::');
 }
 
-Future exportMultiAsset(ExportConfig config, String locale,
+Future exportMultiAsset(CdnInfo cdnInfo, ExportConfig config, String locale,
     MultiConfig configEntry, Manifest manifest) async {
   var assetRegExp = configEntry.regExp;
   var assetConfig = configEntry.config;
   var skipExists = configEntry.skipExists;
 
-  print('::group::Export $assetRegExp (multi / ${locale})');
+  print('::group::Export $assetRegExp (multi / $locale)');
 
   var assets = <ManifestAssetBundle>[];
 
-  for (var pullAction in manifest.pullUnityAssets(assetRegExp,
+  for (var pullAction in manifest.pullUnityAssets(cdnInfo, assetRegExp,
       filter: (asset) =>
           !config.pathConfig.index.isIndexHashMatch(locale, asset))) {
     assets.addAll(await pullAction);
@@ -166,7 +164,7 @@ Future exportMultiAsset(ExportConfig config, String locale,
     await exportAssets(
       config,
       locale,
-      await createAssetsFile(config, assets.map((e) => e.file)),
+      await createAssetsFile(config, assets.map((e) => e.file!)),
       path.join(config.assetStudioConfigDir, assetConfig),
       skipExists: skipExists,
     );

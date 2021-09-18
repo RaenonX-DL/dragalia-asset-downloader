@@ -4,21 +4,23 @@ import 'dart:io';
 import 'package:dl_datamine/config.dart';
 import 'package:path/path.dart' as path;
 
+import 'dlcdn.dart';
 import 'dlmanifest.dart';
 
-extension Extension on String {
-  bool isNullOrEmpty() => this == null || isEmpty;
+extension Extension on String? {
+  bool isNullOrEmpty() => this == null || this!.isEmpty;
 }
 
-Future<List<ManifestAssetBundle>> pullAudioAssets(
+Future<List<ManifestAssetBundle>> pullAudioAssets(CdnInfo cdnInfo,
     ExportConfig config, String locale, Manifest manifest) async {
   var assets = <ManifestAssetBundle>[];
 
-  for (var pullAction in manifest.pullRawAssets(config.pathConfig.audio.regExp,
+  for (var pullAction in manifest.pullRawAssets(
+      cdnInfo, config.pathConfig.audio.regExp,
       filter: (asset) =>
           !config.pathConfig.index.isIndexHashMatch(locale, asset))) {
     assets.addAll((await pullAction).where((asset) =>
-        <String>['.awb', '.acb'].contains(path.extension(asset.file.path))));
+        <String>['.awb', '.acb'].contains(path.extension(asset.file!.path))));
   }
 
   return assets;
@@ -28,17 +30,17 @@ Future<List<ManifestAssetBundle>> getAudioAssetsForExport(
     List<ManifestAssetBundle> assets) async {
   var isSameAudioAsset =
       (ManifestAssetBundle acbAsset, ManifestAssetBundle awbAsset) =>
-          path.basenameWithoutExtension(acbAsset.file.path) ==
-          path.basenameWithoutExtension(awbAsset.file.path);
+          path.basenameWithoutExtension(acbAsset.file!.path) ==
+          path.basenameWithoutExtension(awbAsset.file!.path);
 
   var awbAssets = <ManifestAssetBundle>[];
   var acbAssets = <ManifestAssetBundle>[];
   var ret = <ManifestAssetBundle>[];
 
   awbAssets.addAll(assets
-      .where((asset) => path.extension(asset.file.path).endsWith('.awb')));
+      .where((asset) => path.extension(asset.file!.path).endsWith('.awb')));
   acbAssets.addAll(assets
-      .where((asset) => path.extension(asset.file.path).endsWith('.acb')));
+      .where((asset) => path.extension(asset.file!.path).endsWith('.acb')));
 
   ret.addAll(awbAssets);
   ret.addAll(acbAssets.where((acbAsset) =>
@@ -47,11 +49,11 @@ Future<List<ManifestAssetBundle>> getAudioAssetsForExport(
   return ret;
 }
 
-Future exportAudioAsset(
-    ExportConfig config, String locale, Manifest manifest) async {
-  print('::group::Export audio (${locale})');
+Future exportAudioAsset(CdnInfo cdnInfo, ExportConfig config, String locale,
+    Manifest manifest) async {
+  print('::group::Export audio ($locale)');
 
-  var audioAssets = await pullAudioAssets(config, locale, manifest);
+  var audioAssets = await pullAudioAssets(cdnInfo, config, locale, manifest);
   var audioAssetsForExport = await getAudioAssetsForExport(audioAssets);
 
   print('Assets pulled.');
@@ -69,7 +71,7 @@ Future exportAudioAsset(
 
     print('${DateTime.now().toIso8601String()}: '
         'Exporting Audio (${idx + 1} / ${audioAssetsForExport.length}) '
-        '${audioAsset.file.path}');
+        '${audioAsset.file!.path}');
     await exportAudio(config, audioAsset);
   }
 
@@ -90,7 +92,7 @@ Future exportAssets(
   String locale,
   String bundlePath,
   String settingPath, {
-  String suffix,
+  String? suffix,
   bool skipExists = false,
 }) async {
   var arguments = [
@@ -122,7 +124,7 @@ Future exportAssets(
 
 Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle asset,
     int subsongIndex, bool streamHasName) async {
-  var assetPath = asset.file.path;
+  var assetPath = asset.file!.path;
 
   if (!await File(assetPath).exists()) {
     throw Exception('error: awb audio file not exists. ($assetPath)');
@@ -162,7 +164,7 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle asset,
     stderr.write(proc.stderr);
   }
 
-  if (await proc.exitCode != 0) {
+  if (proc.exitCode != 0) {
     throw Exception('error: failed to export the audio subsong.'
         ' (#$subsongIndex of $assetPath to $exportPath)');
   }
@@ -171,7 +173,7 @@ Future exportAudioSubsong(ExportConfig config, ManifestAssetBundle asset,
 Future exportAudio(ExportConfig config, ManifestAssetBundle audioAsset) async {
   var audioFile = audioAsset.file;
 
-  if (!await audioFile.exists()) {
+  if (!await audioFile!.exists()) {
     throw Exception('error: audio file not exists. (${audioFile.path})');
   }
 
@@ -192,7 +194,7 @@ Future exportAudio(ExportConfig config, ManifestAssetBundle audioAsset) async {
     stderr.write(stdErr + '\n');
   }
 
-  if (await proc.exitCode != 0) {
+  if (proc.exitCode != 0) {
     throw Exception(
         'error: failed to get the audio metadata. (${audioFile.path})');
   }

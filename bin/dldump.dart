@@ -31,9 +31,8 @@ void main(List<String> arguments) async {
 
   var dumpStartTime = DateTime.now();
 
-  await cdn.initialize(config);
-  await cdn.downloadAllManifest();
-  await exporter.exportAllAssets(config);
+  var cdnInfo = await cdn.initialize(config);
+  await exporter.exportAllAssets(cdnInfo, config);
   await imgproc.composeImage(config);
 
   var dumpDuration = DateTime.now().difference(dumpStartTime).abs();

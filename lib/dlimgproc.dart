@@ -52,7 +52,7 @@ Future _performImageTask(
     fileChunks[i % fileChunkCount].add(filesToProcess[i]);
   }
 
-  print('::group::Compose image - ${taskName}');
+  print('::group::Compose image - $taskName');
   var dumpStartTime = DateTime.now();
 
   await Future.wait(fileChunks.map((fileChunk) async => {
@@ -64,7 +64,7 @@ Future _performImageTask(
       }));
 
   var duration = DateTime.now().difference(dumpStartTime).abs();
-  print('${taskName} completed in ${duration}');
+  print('$taskName completed in $duration');
   print('::endgroup::');
 }
 
@@ -78,11 +78,17 @@ Future _composeRgbAlphaSingle(ExportConfig config, File file) async {
   }
 
   var currentDateTime = DateTime.now().toIso8601String();
-  print('${currentDateTime}: [imgproc] compose alpha: ' + file.path);
+  print('$currentDateTime: [imgproc] compose alpha: ' + file.path);
 
   try {
-    var rgb = img.decodePng(await file.readAsBytes());
     var a = img.decodePng(await alphaFile.readAsBytes());
+    var rgb = img.decodePng(await file.readAsBytes());
+
+    if (a == null) {
+      throw ArgumentError('Alpha channel file is not loadable');
+    } else if (rgb == null) {
+      throw ArgumentError('RGB file is not loadable');
+    }
 
     if (a.length != rgb.length) {
       a = _resizeImage(a, rgb);
@@ -114,12 +120,20 @@ Future _composeYCbCrSingle(ExportConfig config, File file) async {
   }
 
   var currentDateTime = DateTime.now().toIso8601String();
-  print('${currentDateTime}: [imgproc] compose YCbCr: ' + file.path);
+  print('$currentDateTime: [imgproc] compose YCbCr: ' + file.path);
 
   try {
     var yImage = img.decodePng(await yFile.readAsBytes());
     var cbImage = img.decodePng(await cbFile.readAsBytes());
     var crImage = img.decodePng(await crFile.readAsBytes());
+
+    if (yImage == null) {
+      throw ArgumentError('Y file is not loadable');
+    } else if (cbImage == null) {
+      throw ArgumentError('Cb file is not loadable');
+    } else if (crImage == null) {
+      throw ArgumentError('Cr file is not loadable');
+    }
 
     if (cbImage.length != yImage.length) {
       cbImage = _resizeImage(cbImage, yImage);
